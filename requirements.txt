@@ -1,0 +1,5 @@
+click
+aioredis
+colorlog
+booby-ng
+msgpack-python
