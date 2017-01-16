@@ -22,32 +22,47 @@ log = logging.getLogger("aiotasks")
 
 
 class AsyncWaitContextManager:
-    def __init__(self, *args, **kwargs): # pragma: no cover
+    def __init__(self,
+                 *args,
+                 **kwargs):  # pragma: no cover
         self.fn = args[0]
-        self.args = args[1:]
+        self._list_name = args[1]
+        self._redis_poller = args[2]
+        self._loop = args[3] or asyncio.get_event_loop()
+        self._timeout = kwargs.pop("timeout", 0)
+        self._infinite_timeout = kwargs.pop("infinite_timeout", 900)
+        
+        self.args = args[4:]
         self.kwargs = kwargs
     
-    async def __aenter__(self):
-        timeout = self.kwargs.pop("timeout", 0)
-        loop = self.kwargs.pop("loop", asyncio.get_event_loop())
-        infinite_timeout = self.kwargs.pop("infinite_timeout", 900)  # 15 minutes
+    def __await__(self, *args, **kwargs):
+        task_id = uuid.uuid4().hex
         
+        return self._redis_poller.lpush(self._list_name,
+                                        msgpack.packb(dict(task_id=task_id,
+                                                           function=self.fn.function_name,
+                                                           args=self.args,
+                                                           kwargs=self.kwargs),
+                                                      use_bin_type=True)).__await__()
+    
+    async def __aenter__(self):
         # Timeout != 0 -> apply timeout
         try:
-            if timeout:
+            if self._timeout:
                 return await asyncio.wait_for(self.fn(*self.args, **self.kwargs),
-                                              timeout=timeout,
-                                              loop=loop)
+                                              timeout=self._timeout,
+                                              loop=self._loop)
             # Timeout == 0 -> infinite --> Apply very long timeout
             else:
                 return await asyncio.wait_for(self.fn(*self.args, **self.kwargs),
-                                              timeout=infinite_timeout,
-                                              loop=loop)
+                                              timeout=self._infinite_timeout,
+                                              loop=self._loop)
+        
         except concurrent.futures.TimeoutError as e:
             log.error("{function}: {error_message}".format(function=self.fn.__name__,
                                                            error_message=e))
             raise AioTasksTimeout(e) from e
-        
+    
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 
@@ -76,12 +91,12 @@ class AsyncTaskSubscribeRedis(AsyncTaskSubscribeBase):
                                                                                          db=db,
                                                                                          password=password,
                                                                                          loop=self.loop_subscribers))
-    
+        
         self._redis_sub = self.loop_subscribers.run_until_complete(aioredis.create_redis(address=(host, port),
                                                                                          db=db,
                                                                                          password=password,
                                                                                          loop=self.loop_subscribers))
-    
+        
         self.topics_subscribers = defaultdict(set)
         self._topics_channels = dict()
         self._topics_channels = dict()
@@ -157,7 +172,7 @@ class AsyncTaskSubscribeRedis(AsyncTaskSubscribeBase):
     
     async def has_pending_topics(self):
         return bool(self._running_tasks)
-        
+    
     def _make_tasks_done_subscriber(self, task_id, future):
         self._running_tasks.pop(task_id)
     
@@ -239,48 +254,44 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
             
             # if function is a coro, add some new functions
             if asyncio.iscoroutinefunction(f):
-                new_f.delay = partial(self._delay, new_f)
-                new_f.wait = partial(AsyncWaitContextManager, new_f, loop=self.loop_delay)
-
+                new_f.delay = partial(AsyncWaitContextManager,
+                                      new_f,
+                                      self._list_name,
+                                      self._redis_poller,
+                                      self.loop_delay)
+                
                 if name:
                     function_name = name
                 else:
                     function_name = f.__name__
-
+                
                 new_f.function_name = function_name
-
+                
                 self._tasks[function_name] = f
-
+            
             return new_f
         
         return real_decorator
-
+    
     def add_task(self, function: callable, name: str = None) -> callable:
         if not asyncio.iscoroutinefunction(function):
             log.warning("Function '{}' is not a coroutine and can't be added as a task".format(function.__name__))
             return
+
+        function.delay = partial(AsyncWaitContextManager,
+                              function,
+                              self._list_name,
+                              self._redis_poller,
+                              self.loop_delay)
         
-        function.delay = partial(self._delay, function)
-        function.wait = partial(AsyncWaitContextManager, function, loop=self.loop_delay)
-    
         if name:
             function_name = name
         else:
             function_name = function.__name__
-    
+        
         function.function_name = function_name
-    
+        
         self._tasks[function_name] = function
-    
-    async def _delay(self, function, *args, **kwargs):
-        task_id = uuid.uuid4().hex
-
-        await self._redis_poller.lpush(self._list_name,
-                                       msgpack.packb(dict(task_id=task_id,
-                                                          function=function.function_name,
-                                                          args=args,
-                                                          kwargs=kwargs),
-                                                     use_bin_type=True))
     
     async def has_pending_tasks(self):
         return bool(self._running_tasks) or not bool(await self._redis_poller.llen(self._list_name))
@@ -308,7 +319,7 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
             try:
                 if type(task_id) is int:
                     task_id = str(task_id)
-                    
+                
                 uuid.UUID(task_id, version=4)
             except ValueError:
                 log.error("Task ID '{}' has not valid UUID4 format".format(task_id))
@@ -318,7 +329,7 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
             except KeyError:
                 log.warning("No local task with name '{}'".format(function))
                 continue
-                
+            
             task = self.loop_delay.create_task(local_task(*args, **kwargs))
             running_task_id = uuid.uuid4().hex
             

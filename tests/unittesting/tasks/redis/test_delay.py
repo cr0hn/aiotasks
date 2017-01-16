@@ -228,43 +228,43 @@ def test_redis_delay_task_decorator_custom_task_name(event_loop, redis_instance)
 def test_redis_delay_add_task_oks(event_loop, redis_instance):
     manager = build_manager(dsn=redis_instance, loop=event_loop)
     
-    globals()["test_redis_delay_add_task_oks_finished"] = False
+    globals()["test_task_test_redis_delay_add_task_oks_finished"] = False
     
-    async def task_test_redis_delay_task_decorator_oks(num):
-        globals()["test_redis_delay_add_task_oks_finished"] = True
+    async def task_test_redis_delay_add_task_oks(num):
+        globals()["test_task_test_redis_delay_add_task_oks_finished"] = True
     
     async def run():
         manager.run()
         
         # Add task without decorator
-        manager.add_task(task_test_redis_delay_task_decorator_oks)
+        manager.add_task(task_test_redis_delay_add_task_oks)
         
-        await task_test_redis_delay_task_decorator_oks.delay(1)
+        await task_test_redis_delay_add_task_oks.delay(1)
         
         await manager.wait(timeout=0.2, exit_on_finish=True, wait_timeout=0.1)
     
     event_loop.run_until_complete(run())
     manager.stop()
     
-    assert globals()["test_redis_delay_add_task_oks_finished"] is True
+    assert globals()["test_task_test_redis_delay_add_task_oks_finished"] is True
     
-    del globals()["test_redis_delay_add_task_oks_finished"]
+    del globals()["test_task_test_redis_delay_add_task_oks_finished"]
 
 
 def test_redis_delay_add_task_custom_task_name(event_loop, redis_instance):
     manager = build_manager(dsn=redis_instance, loop=event_loop)
     
-    async def task_test_redis_delay_task_decorator_oks():
+    async def task_test_redis_delay_add_task_custom_task_name():
         pass
     
     async def run():
         manager.run()
         
         # Add task without decorator
-        manager.add_task(task_test_redis_delay_task_decorator_oks,
+        manager.add_task(task_test_redis_delay_add_task_custom_task_name,
                          name="custom_task_test_redis_delay_task_decorator_oks")
         
-        await task_test_redis_delay_task_decorator_oks.delay(1)
+        await task_test_redis_delay_add_task_custom_task_name.delay()
         
         await manager.wait(timeout=0.2, exit_on_finish=True, wait_timeout=0.1)
     

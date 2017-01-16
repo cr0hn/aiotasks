@@ -17,7 +17,7 @@ def test_redis_wait_oks(event_loop, redis_instance):
     async def run():
         manager.run()
 
-        async with task_test_redis_wait_oks.wait() as f:
+        async with task_test_redis_wait_oks.delay() as f:
             globals()["test_redis_wait_oks_finished"] = f
         
     event_loop.run_until_complete(run())
@@ -43,7 +43,7 @@ def test_redis_wait_no_port_gotten(event_loop, redis_instance):
     async def run():
         manager.run()
     
-        async with task_test_redis_wait_no_port_gotten.wait() as f:
+        async with task_test_redis_wait_no_port_gotten.delay() as f:
             globals()["test_redis_wait_no_port_gotten_finished"] = f
     
     event_loop.run_until_complete(run())
@@ -70,7 +70,7 @@ def test_redis_wait_timeout_raises(event_loop, redis_instance):
         manager.run()
 
         try:
-            async with task_test_redis_wait_oks.wait(timeout=0.2) as f:
+            async with task_test_redis_wait_oks.delay(timeout=0.2) as f:
                 pass
         except AioTasksTimeout:
                 globals()["test_redis_wait_timeout_raises_finished"] = True
@@ -98,7 +98,7 @@ def test_redis_wait_infinite_timeout_raises(event_loop, redis_instance):
     async def run():
         manager.run()
         try:
-            async with task_test_redis_wait_oks.wait(infinite_timeout=0.2) as f:
+            async with task_test_redis_wait_oks.delay(infinite_timeout=0.2) as f:
                 globals()["test_redis_wait_infinite_timeout_raises_finished"] = f
         except AioTasksTimeout:
             globals()["test_redis_wait_timeout_raises_finished"] = True
@@ -126,7 +126,7 @@ def test_redis_wait_infinite_raises_timeout_exception(event_loop, redis_instance
     async def run():
         manager.run()
         with pytest.raises(AioTasksTimeout):
-            async with task_test_redis_wait_oks.wait(infinite_timeout=0.2) as f:
+            async with task_test_redis_wait_oks.delay(infinite_timeout=0.2) as f:
                 pass
 
     event_loop.run_until_complete(run())
