@@ -37,7 +37,7 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
         self.prefix = prefix
 
         AsyncTaskSubscribeMemory.__init__(self, loop=loop)
-        AsyncTaskDelayMemory.__init__(self, loop=loop)
+        AsyncTaskDelayMemory.__init__(self, prefix=prefix, loop=loop)
         AsyncTaskBase.__init__(self)
 
         # This line is necessary to close redis connections
@@ -64,17 +64,17 @@ def build_manager(dsn: str = "memory://",
     loop = loop or asyncio.get_event_loop()
     
     if not prefix:
-        log.error("Empty prefix. Using 'aiotasks' as prefix")
+        log.error("Empty task_prefix. Using 'aiotasks' as task_prefix")
         prefix = "aiotasks"
     
-    # Fixing prefix type
+    # Fixing task_prefix type
     prefix = str(prefix)
 
     if not os.getenv("AIOTASK_DEBUG", False):  # pragma: no cover
         loop.set_debug(True)
     
     if dsn.startswith("memory"):
-        ret = MemoryBackend(loop=loop, prefix=prefix)
+        ret = MemoryBackend(prefix=prefix, loop=loop)
     elif dsn.startswith("redis"):
         ret = RedisBackend(dsn=dsn, prefix=prefix, loop=loop)
 

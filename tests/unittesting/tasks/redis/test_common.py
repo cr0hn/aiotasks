@@ -5,8 +5,6 @@ def test_redis_decorated_functions_has_correct_dynamic_functions(event_loop, red
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["has_delay_method"] = False
-    globals()["has_wait_method"] = False
-    globals()["has_subscribe_method"] = False
     
     @manager.task()
     async def task_test_redis_decorated_functions_has_correct_dynamic_functions():

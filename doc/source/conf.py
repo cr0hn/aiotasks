@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# API-Test documentation build configuration file, created by
+# aiotasks documentation build configuration file, created by
 # sphinx-quickstart on Mon Oct 10 23:43:03 2016.
 #
 # This file is execfile()d with the current directory set to its
@@ -31,7 +31,6 @@ sys.path.insert(0, os.path.abspath(os.path.join('..', "..")))
 
 extensions = [
     'alabaster',
-    'sphinxcontrib.asyncio',
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax'
@@ -53,8 +52,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'aiotasks'
-copyright = u'2017, Daniel Garcia (cr0hn) - @ggdaniel'
-author = u'Daniel Garcia (cr0hn) - @ggdaniel'
+copyright = u'2016, Daniel Garcia - cr0hn'
+author = u'Daniel Garcia - cr0hn'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -73,7 +72,7 @@ author = u'Daniel Garcia (cr0hn) - @ggdaniel'
 #     release = ''.join(release.partition('dev')[:2])
 #
 # version = '.'.join(release.split('.')[:2])
-version = "1.0.0"
+version = "1.0"
 release = "1.0.0"
 
 
@@ -134,22 +133,22 @@ html_theme = 'alabaster'
 # documentation.
 
 html_theme_options = {
-    'logo': 'logo.jpg',
-    'description': 'Asynchronous Distributed Task Queue',
+    'logo': 'logo-128x128.png',
+    'touch_icon': 'favicon.ico',
+    'description': 'A Celery like task manager for the new AsyncIO Python module',
     'github_user': 'cr0hn',
     'github_repo': 'aiotasks',
     'github_button': True,
     'github_type': 'star',
     'github_banner': True,
-    'travis_button': True,
-    'codecov_button': True,
     'pre_bg': '#FFF6E5',
     'note_bg': '#E5ECD1',
     'note_border': '#BFCF8C',
     'body_text': '#482C0A',
     'sidebar_text': '#49443E',
     'sidebar_header': '#4B4032',
-    'show_powered_by': False
+    'show_powered_by': False,
+    'logo_text_align': "center"
 }
 
 
@@ -222,7 +221,7 @@ html_search_language = 'en'
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'aiotasks'
+htmlhelp_basename = 'aiotasksdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -244,7 +243,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'aiotasks.tex', u'API-Test Documentation',
+    (master_doc, 'aiotasks.tex', u'aiotasksDocumentation',
      u'Daniel Garcia - cr0hn', 'manual'),
 ]
 
@@ -288,8 +287,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'aiotasks', u'aiotasks',
-     author, 'Daniel Garcia (cr0hn) - @ggdaniel', 'Asynchronous Distributed Task Queue',
+    (master_doc, 'aiotasks', u'aiotasksDocumentation',
+     author, 'aiotasks', 'One line description of project.',
      'Miscellaneous'),
 ]
 

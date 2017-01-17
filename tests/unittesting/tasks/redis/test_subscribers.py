@@ -24,7 +24,7 @@ def test_redis_subscribers_oks(event_loop, redis_instance):
         
         await manager.publish("hello", "world")
         
-        await manager.wait(timeout=0.2, wait_timeout=0.1)
+        await manager.wait(timeout=0.5, wait_timeout=0.1)
     
     event_loop.run_until_complete(run())
     manager.stop()
@@ -48,7 +48,7 @@ def test_redis_subscribers_no_topics(event_loop, redis_instance):
     event_loop.run_until_complete(run())
     manager.stop()
     
-    assert len(manager._topics_channels) == 0
+    assert len(manager.topics_subscribers) == 0
     
     
 def test_redis_subscribers_empty_topics(event_loop, redis_instance):
@@ -84,7 +84,7 @@ def test_redis_subscribers_empty_topics(event_loop, redis_instance):
     event_loop.run_until_complete(run())
     manager.stop()
     
-    assert len(manager._topics_channels) == 0
+    assert len(manager.topics_subscribers) == 0
     assert "Empty topic fount in function 'task_test_redis_subscribers_oks'. Skipping it." in custom.content
 
 
@@ -110,7 +110,7 @@ def test_redis_subscribers_duplicated_topics(event_loop, redis_instance):
     event_loop.run_until_complete(run())
     manager.stop()
     
-    assert len(manager._topics_channels) == 1
+    assert len(manager.topics_subscribers) == 1
 
 
 def test_redis_subscribers_no_port_gotten(event_loop, redis_instance):

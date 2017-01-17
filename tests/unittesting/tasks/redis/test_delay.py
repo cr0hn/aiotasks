@@ -143,7 +143,7 @@ def test_redis_delay_task_decorator_invalid_function(event_loop, redis_instance)
         # Send an invalid task name
         task_id = uuid.uuid4().hex
         
-        await manager._redis_poller.lpush(manager._list_name,
+        await manager._redis_poller.lpush(manager.task_list_name,
                                           msgpack.packb(dict(task_id=task_id,
                                                              function="non_exist",
                                                              args=(),
@@ -190,7 +190,7 @@ def test_redis_delay_task_decorator_invalid_task_id_format(event_loop, redis_ins
         manager.run()
         
         # Send an invalid task name
-        await manager._redis_poller.lpush(manager._list_name,
+        await manager._redis_poller.lpush(manager.task_list_name,
                                           msgpack.packb(dict(task_id=task_id,
                                                              function="task_test_redis_delay_task_decorator_invalid_task_id_format",
                                                              args=(),
@@ -219,7 +219,7 @@ def test_redis_delay_task_decorator_custom_task_name(event_loop, redis_instance)
     event_loop.run_until_complete(run())
     manager.stop()
     
-    assert "custom_test_redis_delay_task_decorator_custom_name" in manager._tasks.keys()
+    assert "custom_test_redis_delay_task_decorator_custom_name" in manager.task_available_tasks.keys()
 
 
 # --------------------------------------------------------------------------
@@ -271,4 +271,40 @@ def test_redis_delay_add_task_custom_task_name(event_loop, redis_instance):
     event_loop.run_until_complete(run())
     manager.stop()
 
-    assert "custom_task_test_redis_delay_task_decorator_oks" in manager._tasks.keys()
+    assert "custom_task_test_redis_delay_task_decorator_oks" in manager.task_available_tasks.keys()
+
+
+def test_redis_delay_add_task_non_coroutine_as_input(event_loop, redis_instance):
+    import logging
+    
+    logger = logging.getLogger("aiotasks")
+    
+    class CustomLogger(logging.StreamHandler):
+        def __init__(self):
+            super(CustomLogger, self).__init__()
+            self.content = []
+        
+        def emit(self, record):
+            self.content.append(record.msg)
+    
+    custom = CustomLogger()
+    logger.addHandler(custom)
+    
+    manager = build_manager(dsn=redis_instance, loop=event_loop)
+    
+    def task_test_redis_delay_add_task_non_coroutine_as_input():
+        pass
+    
+    async def run():
+        manager.run()
+        
+        # Add task without decorator
+        manager.add_task(task_test_redis_delay_add_task_non_coroutine_as_input,
+                         name="custom_task_test_redis_delay_task_decorator_oks")
+        
+    event_loop.run_until_complete(run())
+    manager.stop()
+
+    assert "Function 'task_test_redis_delay_add_task_non_coroutine_as_input' is not a coroutine and can't be added as a task" in custom.content
+
+    # assert "custom_task_test_redis_delay_task_decorator_oks" in manager._tasks.keys()

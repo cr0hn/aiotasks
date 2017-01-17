@@ -6,6 +6,8 @@ recursive-exclude * *.pyo
 recursive-exclude * *.orig
 recursive-exclude * .DS_Store
 global-exclude __pycache__/*
+global-exclude .cache
+global-exclude .tox
 global-exclude .deps/*
 global-exclude *.so
 global-exclude *.pyd
@@ -15,5 +17,6 @@ global-exclude .DS_Store
 global-exclude .mailmap
 
 prune aiotasks/doc*
-graft aiotasks/resources/*
+prune aiotasks/examples*
+prune aiotasks/tests*
 

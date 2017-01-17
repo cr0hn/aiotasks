@@ -30,7 +30,6 @@ import codecs
 
 from os.path import dirname, join
 from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
 
 
 if sys.version_info < (3, 5,):
@@ -61,16 +60,6 @@ with open(join(dirname(__file__), 'requirements-performance.txt')) as f:
 with open(join(dirname(__file__), 'README.md')) as f:
     long_description = f.read()
 
-# class PyTest(TestCommand):
-#     user_options = []
-#
-#     def run(self):
-#         import subprocess
-#         import sys
-#         errno = subprocess.call([sys.executable, '-m', 'pytest', '--cov-report', 'html', '--cov-report', 'term', '--cov', 'aiotasks/'])
-#         raise SystemExit(errno)
-
-
 setup(
     name='aiotasks',
     version=version,
@@ -87,7 +76,7 @@ setup(
     entry_points={'console_scripts': [
         'aiotasks = aiotasks.actions.default.cli:cli',
     ]},
-    description='Asynchronous Distributed Task Queue',
+    description='A Celery like task manager for the new AsyncIO Python module',
     long_description=long_description,
     classifiers=[
         'Environment :: Console',
@@ -100,7 +89,5 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Topic :: Security',
     ]
-    # tests_require=required_test,
-    # cmdclass=dict(test=PyTest)
 )
 

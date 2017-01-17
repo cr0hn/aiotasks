@@ -3,7 +3,7 @@ aiotasks
 
 ![Logo](doc/source/_static/logo.jpg)
 
-*aiotasks: Asynchronous Distributed Task Queue*
+*aiotasks: A Celery like task manager for the new AsyncIO Python module*
 
 Code | https://github.com/cr0hn/aiotasks
 ---- | ----------------------------------------------

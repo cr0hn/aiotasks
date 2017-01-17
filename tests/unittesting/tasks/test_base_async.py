@@ -19,11 +19,11 @@ def test_build_manager_invalid_prefix(event_loop):
     
     manager = build_manager(dsn="memory://", loop=event_loop, prefix=None)
     
-    assert manager.prefix == "aiotasks"
-    assert "Empty prefix. Using 'aiotasks' as prefix" in custom.content
+    assert manager.task_prefix == "aiotasks"
+    assert "Empty task_prefix. Using 'aiotasks' as task_prefix" in custom.content
 
 
 def test_build_manager_invalid_prefix_type(event_loop):
     manager = build_manager(dsn="memory://", loop=event_loop, prefix=11)
     
-    assert manager.prefix == "11"
+    assert manager.task_prefix == "11"
