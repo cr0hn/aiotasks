@@ -35,9 +35,9 @@ Simple
 
 Install aiotasks is so easy:
 
-```
-$ python3.5 -m pip install aiotasks
-```
+.. code-block:: python
+
+    # python3.5 -m pip install aiotasks
 
 With extra performance
 ++++++++++++++++++++++
