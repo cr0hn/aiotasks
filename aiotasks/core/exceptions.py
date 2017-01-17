@@ -17,4 +17,5 @@ class AioTasksTimeout(concurrent.futures.TimeoutError):
     pass
 
 
-__all__ = ("AioTasksError", "AioTasksValueError", "AioTasksTypeError", "AioTasksTimeout")
+__all__ = ("AioTasksError", "AioTasksValueError", "AioTasksTypeError",
+           "AioTasksTimeout")

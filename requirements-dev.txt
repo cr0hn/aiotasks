@@ -10,3 +10,4 @@ pytest-asyncio
 pytest-coverage
 redis
 redislite
+flake8

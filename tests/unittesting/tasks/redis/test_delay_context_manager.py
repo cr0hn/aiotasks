@@ -26,7 +26,7 @@ def test_redis_wait_oks(event_loop, redis_instance):
     assert globals()["test_redis_wait_oks_finished"] == True
     
     del globals()["test_redis_wait_oks_finished"]
-    
+
 
 def test_redis_wait_no_port_gotten(event_loop, redis_instance):
     

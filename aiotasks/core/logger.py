@@ -15,7 +15,7 @@ def setup_logging(name):
     """
 
     assert isinstance(name, str)
-    
+
     # Add console level
     logging.addLevelName(CONSOLE_LEVEL, "CONSOLE_LEVEL")
 
@@ -30,8 +30,10 @@ def setup_logging(name):
     logger = logging.getLogger(name)
 
     # Set file log format
-    file_format = logging.Formatter('[%(levelname)s] %(asctime)s - %(message)s', "%Y-%m-%d %H:%M:%S")
-    log_file = logging.FileHandler(filename=os.path.join(os.getcwd(), "aiotasks.log"))
+    file_format = logging.Formatter(
+        '[%(levelname)s] %(asctime)s - %(message)s', "%Y-%m-%d %H:%M:%S")
+    log_file = logging.FileHandler(
+        filename=os.path.join(os.getcwd(), "aiotasks.log"))
 
     log_file.setFormatter(file_format)
 
@@ -54,10 +56,11 @@ def setup_logging(name):
     log_console = logging.StreamHandler()
     log_console.setFormatter(formatter)
 
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Add all of handlers to logger config
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     logger.addHandler(log_console)
     logger.addHandler(log_file)
+
 
 __all__ = ("setup_logging", "CONSOLE_LEVEL")
