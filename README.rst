@@ -1,7 +1,7 @@
 aiotasks
 ========
 
-![Logo](doc/source/_static/logo.jpg)
+![Logo](doc/source/_static/logo-128x128.png)
 
 *aiotasks: A Celery like task manager for the new AsyncIO Python module*
 
