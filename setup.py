@@ -46,8 +46,8 @@ with codecs.open(version_file, 'r', 'latin1') as fp:
                              fp.read(), re.M)[0]
     except IndexError:
         raise RuntimeError('Unable to determine version.')
-    
-    
+
+
 with open(join(dirname(__file__), 'requirements.txt')) as f:
     required = f.read().splitlines()
 
@@ -80,14 +80,12 @@ setup(
     long_description=long_description,
     classifiers=[
         'Environment :: Console',
-        'Intended Audience :: System Administrators',
-        'Intended Audience :: Other Audience',
+        'Intended Audience :: Software Development',
         'License :: OSI Approved :: BSD License',
         'Operating System :: MacOS',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
         'Programming Language :: Python :: 3.5',
-        'Topic :: Security',
+        'Programming Language :: Python :: 3.6',
     ]
 )
-
