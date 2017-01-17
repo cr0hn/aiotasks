@@ -1,6 +1,8 @@
 aiotasks
 ========
 
+*aiotasks: A Celery like task manager for the new AsyncIO Python module*
+
 .. image::  doc/source/_static/logo-128x128.png
     :height: 64px
     :width: 64px
@@ -14,9 +16,6 @@ aiotasks
 
 .. image:: https://img.shields.io/pypi/status/Django.svg
     :target: https://pypi.python.org/pypi/aiotasks/1.0.0
-
-*aiotasks: A Celery like task manager for the new AsyncIO Python module*
-
 
 +----------------+------------------------------------------------+
 |Project site    | https://github.com/cr0hn/aiotasks              |

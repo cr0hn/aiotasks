@@ -10,4 +10,6 @@ pytest-asyncio
 pytest-coverage
 redis
 redislite
+
 flake8
+codecov
