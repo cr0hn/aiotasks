@@ -17,6 +17,9 @@ aiotasks
 .. image:: https://img.shields.io/pypi/status/Django.svg
     :target: https://pypi.python.org/pypi/aiotasks/1.0.0
 
+.. image:: https://codecov.io/gh/cr0hn/aiotasks/branch/master/graph/badge.svg?token=hPumvvJNrG
+    :target: https://codecov.io/gh/cr0hn/aiotasks
+
 +----------------+------------------------------------------------+
 |Project site    | https://github.com/cr0hn/aiotasks              |
 +----------------+------------------------------------------------+
