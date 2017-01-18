@@ -20,6 +20,7 @@ aiotasks
 .. image:: https://codecov.io/gh/cr0hn/aiotasks/branch/master/graph/badge.svg?token=hPumvvJNrG
     :target: https://codecov.io/gh/cr0hn/aiotasks
 
+
 +----------------+------------------------------------------------+
 |Project site    | https://github.com/cr0hn/aiotasks              |
 +----------------+------------------------------------------------+
