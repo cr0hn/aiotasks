@@ -1,8 +1,9 @@
 import logging
 
 from .model import *
-from ..helpers import *
 from .api import run_default_aiotasks
+from ..helpers import check_input_config
+from ...core.exceptions import AioTasksTypeError
 
 log = logging.getLogger('aiotasks')
 
@@ -14,9 +15,10 @@ def launch_aiotasks_in_console(shared_config, **kwargs):
     config = AioTasksDefaultModel(**shared_config, **kwargs)
 
     # Check if config is valid
-    if not config.is_valid:
-        for prop, msg in config.validation_errors:
-            log.critical("[!] '%s' property %s" % (prop, msg))
+    try:
+        check_input_config(config)
+    except AioTasksTypeError as e:
+        log.console(str(e))
         return
 
     log.setLevel(config.verbosity)
@@ -29,11 +31,11 @@ def launch_aiotasks_in_console(shared_config, **kwargs):
     except KeyboardInterrupt:
         log.console("[*] CTRL+C caught. Exiting...")
     except Exception as e:
-        log.critical("[!] Unhandled exception: %s" % str(e))
+        log.critical("[!] Unhandled exception: {}".format(e))
 
-        log.exception("[!] Unhandled exception: %s" % e, stack_info=True)
+        log.exception("[!] Unhandled exception: {}".format(e), stack_info=True)
     finally:
-        log.debug("[*] Shutdown...")
+        log.console("[*] Shutdown...")
 
 
 __all__ = ("launch_aiotasks_in_console",)

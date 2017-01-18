@@ -1,13 +1,14 @@
-import asyncio
 import os
+import asyncio
 import importlib
 
 from functools import partial
 
 from aiotasks import AsyncTaskBase
-from .model import *
 
-# here = os.path.abspath(os.path.dirname(__file__))
+from .model import *
+from ...core.exceptions import AioTasksError
+
 here = os.getcwd()
 get_path = partial(os.path.join, here)
 
@@ -35,7 +36,7 @@ def run_default_aiotasks(config: AioTasksDefaultModel):
             break
 
     if not manager:
-        raise AttributeError("Not found AsyncTaskBase subclass instance")
+        raise AioTasksError("Not found AsyncTaskBase subclass instance")
 
     manager.run()
     try:

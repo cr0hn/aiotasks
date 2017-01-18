@@ -21,3 +21,4 @@ Testing
 - [ ] Add Pylint test
 - [X] Add flake8 test
 - [ ] Add doctest
+- [ ] Improve test for actions.*.console
