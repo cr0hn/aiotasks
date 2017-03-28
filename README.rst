@@ -8,8 +8,8 @@ aiotasks
     :width: 64px
     :alt: aiohttp-cache logo
 
-.. image:: https://img.shields.io/travis/rust-lang/rust.svg
-    :target: https://travis-ci.com/cr0hn/aiotasks.svg?token=pQEQN6gvxqua3sf85cs3&branch=master
+.. image:: https://travis-ci.org/cr0hn/aiotasks.svg?branch=master
+    :target: https://travis-ci.org/cr0hn/aiotasks
 
 .. image:: https://img.shields.io/pypi/l/Django.svg
     :target: https://github.com/cr0hn/aiotasks/blob/master/LICENSE
@@ -17,7 +17,7 @@ aiotasks
 .. image:: https://img.shields.io/pypi/status/Django.svg
     :target: https://pypi.python.org/pypi/aiotasks/1.0.0
 
-.. image:: https://codecov.io/gh/cr0hn/aiotasks/branch/master/graph/badge.svg?token=hPumvvJNrG
+.. image:: https://codecov.io/gh/cr0hn/aiotasks/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/cr0hn/aiotasks
 
 
