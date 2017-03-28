@@ -43,16 +43,12 @@ aiotasks is an asynchronous task queue/job queue based on distributed message pa
 
 aiotasks doesn't does pulling or active waiting for tasks jobs, instead use asyncio framework to suspend the execution until any new data are received by the broker actively.
 
-.. note::
-
     aiotaks is still under development. Not as active as I would like (for time limitations), but the project is in active development.
 
     If you wan't contribute, take a look to the TODO.md file.
 
 Usage
 -----
-
-.. note::
 
     You can find examples at *examples* folder.
 
@@ -63,8 +59,6 @@ You can run aiotasks as two ways:
 
 Running using the manager
 +++++++++++++++++++++++++
-
-.. note::
 
     Currently there's a limitation for launching the tasks. Python files with the tasks should be in a package to be able for aiotasks to import them.
 
