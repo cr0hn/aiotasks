@@ -54,14 +54,15 @@ Usage
 
 .. note::
 
-    You can find examples at :samp:`examples` folder.
+    You can find examples at *examples* folder.
 
 You can run aiotasks as two ways:
 
 - Launching a aiotasks manager in an independent console / process (like Celery does), and then send any tasks to aiotasks thought the broker.
 - Running the standalone way: Launching the client and the server in an unique point an running both at the same time.
 
-## Running using the manager
+Running using the manager
++++++++++++++++++++++++++
 
 .. note::
 
@@ -71,20 +72,25 @@ You can run aiotasks as two ways:
 
 **Run the manager**
 
-> aiotasks -vvvv worker -A examples.launch_manager_tasks_and_launch_in_console
+.. code-block:: bash
+
+    > aiotasks -vvvv worker -A examples.launch_manager_tasks_and_launch_in_console
 
 **Send the tasks**
 
-> python examples/launch_manager_tasks_and_launch_in_console.py
+.. code-block:: bash
 
-## Running standalone
+    > python examples/launch_manager_tasks_and_launch_in_console.py
+
+Running standalone
+++++++++++++++++++
 
 > python examples/standalone_tasks_standalone.py
 
 Defining tasks
 --------------
 
-This concept was ported from Celery. Define any tasks is very simple, only need to decorate a function with :samp:`task` function.
+This concept was ported from Celery. Define any tasks is very simple, only need to decorate a function with *task* function.
 
 .. code-block:: python
 
@@ -102,7 +108,7 @@ This concept was ported from Celery. Define any tasks is very simple, only need 
 Sending info to tasks
 ---------------------
 
-Currently aiotasks only support send information using the :samp:`delay(...)` method and need to be access to the task definition:
+Currently aiotasks only support send information using the *delay(...)* method and need to be access to the task definition:
 
 .. code-block:: python
 
