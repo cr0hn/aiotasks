@@ -1,12 +1,10 @@
-import pytest
 import logging
 
-from booby.errors import FieldError
-
-from aiotasks.actions import launch_aiotasks_worker_in_console
+from aiotasks import run_with_exceptions_and_logs, SharedConfig
 
 
-def test_launch_aiotasks_worker_in_console_oks(monkeypatch):
+def test_run_with_exceptions_and_logs_oks(monkeypatch):
+
     logger = logging.getLogger("aiotasks")
 
     class CustomLogger(logging.StreamHandler):
@@ -19,17 +17,21 @@ def test_launch_aiotasks_worker_in_console_oks(monkeypatch):
 
     custom = CustomLogger()
     logger.addHandler(custom)
+
+    run_with_exceptions_and_logs(lambda x: x, 0)
+
+    assert "Starting aioTasks" in custom.content
+
+
+def test_run_with_exceptions_and_logs_exception_raised(monkeypatch):
+
+    def raise_exception(x):
+        raise Exception()
 
     monkeypatch.setattr(
         "aiotasks.actions.worker.console.find_manager",
-        lambda x: "OK")
+        raise_exception)
 
-    launch_aiotasks_worker_in_console(dict(), **dict())
-    assert "Starting aioTasks" in custom.content
-    assert "[*] Shutdown..." in custom.content
-
-
-def test_launch_aiotasks_worker_in_console_config_params_not_valid():
     logger = logging.getLogger("aiotasks")
 
     class CustomLogger(logging.StreamHandler):
@@ -43,11 +45,20 @@ def test_launch_aiotasks_worker_in_console_config_params_not_valid():
     custom = CustomLogger()
     logger.addHandler(custom)
 
-    with pytest.raises(FieldError):
-        launch_aiotasks_worker_in_console(dict(one="two"), **dict())
+    run_with_exceptions_and_logs(raise_exception, 0)
+
+    assert "[!] Unhandled exception: " in custom.content
 
 
-def test_launch_aiotasks_worker_in_console_invalid_config_values():
+def test_run_with_exceptions_and_logs_ctrl_plus_c_raised(monkeypatch):
+
+    def raise_exception(x):
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr(
+        "aiotasks.actions.worker.console.find_manager",
+        raise_exception)
+
     logger = logging.getLogger("aiotasks")
 
     class CustomLogger(logging.StreamHandler):
@@ -61,6 +72,6 @@ def test_launch_aiotasks_worker_in_console_invalid_config_values():
     custom = CustomLogger()
     logger.addHandler(custom)
 
-    launch_aiotasks_worker_in_console(dict(application=1), **dict())
+    run_with_exceptions_and_logs(raise_exception, 1)
 
-    assert "'application' property should be a string" in custom.content
+    assert "[*] CTRL+C caught. Exiting..." in custom.content

@@ -1,4 +1,4 @@
-import concurrent
+import concurrent.futures
 
 
 class AioTasksError(Exception):

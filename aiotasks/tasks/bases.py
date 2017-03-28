@@ -20,14 +20,14 @@ log = logging.getLogger("aiotasks")
 # -------------------------------------------------------------------------
 class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
     def __init__(self,
-                 prefix: str = "aiotasks",
-                 loop=None):
-        self.loop_subscribers = loop or asyncio.get_event_loop()
+                 loop,
+                 prefix: str = "aiotasks"):
+        self._loop_subscribers = loop
         self.prefix = prefix
 
         self.running_tasks = dict()
         self.topics_subscribers = defaultdict(set)
-        self.subscriber_ready = asyncio.Event(loop=self.loop_subscribers)
+        self.subscriber_ready = asyncio.Event(loop=self._loop_subscribers)
 
     def subscribe(self, topics=None):
         """Decorator"""
@@ -71,7 +71,9 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
         pass
 
     def _make_tasks_done_subscriber(self, task_id, future):
-        self.running_tasks.pop(task_id)
+        tasks_done = self.running_tasks.pop(task_id)
+
+        log.debug("Task '{}' done".format(tasks_done))
 
     async def listen_topics(self):
         # Mark ready as OK
@@ -120,8 +122,14 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
                 task_id = uuid.uuid4().hex
                 done_fn = partial(self._make_tasks_done_subscriber, task_id)
 
-                task = self.loop_subscribers.create_task(fn(data_topic,
-                                                            data_content))
+                task = self._loop_subscribers.create_task(fn(data_topic,
+                                                             data_content))
+
+                log.debug("Launching task '{}' for topic '{}'".format(
+                    fn.__name__,
+                    data_topic
+                ))
+
                 task.add_done_callback(done_fn)
 
                 self.running_tasks[task_id] = task
@@ -136,21 +144,22 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
     # Implemented methods
     # -------------------------------------------------------------------------
     def __init__(self,
+                 loop,
                  prefix: str = "aiotasks",
-                 loop=None,
                  concurrency: int = 5):
+
+        self._loop_delay = loop
 
         self.task_prefix = prefix
         self.task_running_tasks = dict()
         self.task_available_tasks = dict()
         self.task_concurrency = concurrency
-        self.loop_delay = loop or asyncio.new_event_loop()
         self.task_list_name = "{}:{}".format(self.task_prefix, "tasks")
 
         # Semaphore for task_concurrency
         self.task_concurrency_sem = \
             asyncio.BoundedSemaphore(self.task_concurrency,
-                                     loop=self.loop_delay)
+                                     loop=self._loop_delay)
 
     def task(self, name: str = None):
         """Decorator"""
@@ -166,7 +175,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
                                       new_f,
                                       self.task_list_name,
                                       self.poller,
-                                      self.loop_delay)
+                                      self._loop_delay)
 
                 if name:
                     function_name = name
@@ -191,7 +200,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
                                  function,
                                  self.task_list_name,
                                  self.poller,
-                                 self.loop_delay)
+                                 self._loop_delay)
 
         if name:
             function_name = name
@@ -209,6 +218,13 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         if hasattr(self, "custom_task_done"):
             self.custom_task_done(running_task)
 
+    async def _function_runner(self, fn: callable, *args, **kwargs):
+        # --------------------------------------------------------------------------
+        # In next releases aiotasks will control errors and / or exceptions, retries
+        # etc
+        # --------------------------------------------------------------------------
+        await fn(*args, **kwargs)
+
     async def listen_tasks(self):
         while True:
             raw_data = await self.pending_tasks
@@ -222,7 +238,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
             args = msg.get("args")
             kwargs = msg.get("kwargs")
             task_id = msg.get("task_id")
-            function = msg.get("function")
+            task_function = msg.get("function")
 
             try:
                 if type(task_id) is int:
@@ -235,16 +251,16 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
                 continue
 
             try:
-                local_task = self.task_available_tasks[function]
+                local_task = self.task_available_tasks[task_function]
             except KeyError:
-                log.warning("No local task with name '{}'".format(function))
+                log.warning("No local task with name '{}'".format(task_function))
                 continue
 
             running_task_id = uuid.uuid4().hex
             done_fn = partial(self._make_tasks_done_delay, running_task_id)
 
             # Build stop task
-            task = self.loop_delay.create_task(local_task(*args, **kwargs))
+            task = self._loop_delay.create_task(self._function_runner(local_task, *args, **kwargs))
             task.add_done_callback(done_fn)
 
             self.task_running_tasks[running_task_id] = task
@@ -277,7 +293,12 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
 
 class AsyncTaskBase(object, metaclass=abc.ABCMeta):
-    def __init__(self):
+    def __init__(self,
+                 dsn: str,
+                 loop: asyncio.BaseEventLoop):
+        self.dsn = dsn
+        self.loop = loop
+
         self._launcher_tasks = None
         self._launcher_topics = None
 
@@ -325,30 +346,48 @@ class AsyncTaskBase(object, metaclass=abc.ABCMeta):
             # Wait
             await asyncio.sleep(TIME_STEP, loop=self.loop)
 
+    def blocking_wait(self, *,
+                      timeout: float = 0,
+                      exit_on_finish: bool = False,
+                      wait_timeout: float = 1.0):
+        """
+        :param wait_timeout: time in seconds
+        :type wait_timeout: float
+
+        :param exit_on_finish: exit when all pending tasks are finished
+        :type exit_on_finish: bool
+
+        :param timeout: Time in seconds
+        :type timeout: int
+        """
+        self.loop.run_until_complete(self.wait(timeout=timeout,
+                                               exit_on_finish=exit_on_finish,
+                                               wait_timeout=wait_timeout))
+
     def stop(self):
         self.stop_delayers()
         self.stop_subscriptions()
 
-        for t in asyncio.Task.all_tasks(loop=self.loop_subscribers):
+        for t in asyncio.Task.all_tasks(loop=self._loop_subscribers):
             t.cancel()
-        for t in asyncio.Task.all_tasks(loop=self.loop_delay):
+        for t in asyncio.Task.all_tasks(loop=self._loop_delay):
             t.cancel()
 
         # Ensure all the tasks ends
         async def close_delay_loop():
-            self.loop_delay.stop()
+            self._loop_delay.stop()
 
         async def close_subscribers_loop():
-            self.loop_subscribers.stop()
+            self._loop_subscribers.stop()
 
-        asyncio.ensure_future(close_delay_loop())
-        asyncio.ensure_future(close_subscribers_loop())
+        self.loop.run_until_complete(asyncio.ensure_future(close_delay_loop()))
+        self.loop.run_until_complete(asyncio.ensure_future(close_subscribers_loop()))
 
     def run(self):
         """Blocking run"""
-        self._launcher_topics = self.loop_subscribers. \
+        self._launcher_topics = self._loop_subscribers. \
             create_task(self.listen_topics())
-        self._launcher_tasks = self.loop_delay. \
+        self._launcher_tasks = self._loop_delay. \
             create_task(self.listen_tasks())
 
 

@@ -25,17 +25,10 @@ def setup_logging(name):
             self._log(CONSOLE_LEVEL, message, args, **kws)
 
     logging.Logger.console = console
+    logging.Logger.raw_console = console
 
     # Init logger
     logger = logging.getLogger(name)
-
-    # Set file log format
-    file_format = logging.Formatter(
-        '[%(levelname)s] %(asctime)s - %(message)s', "%Y-%m-%d %H:%M:%S")
-    log_file = logging.FileHandler(
-        filename=os.path.join(os.getcwd(), "aiotasks.log"))
-
-    log_file.setFormatter(file_format)
 
     # Handler: console
     formatter = ColoredFormatter(
@@ -53,6 +46,7 @@ def setup_logging(name):
         secondary_log_colors={},
         style='%'
     )
+
     log_console = logging.StreamHandler()
     log_console.setFormatter(formatter)
 

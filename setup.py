@@ -30,7 +30,7 @@ import codecs
 
 from os.path import dirname, join
 from setuptools import setup, find_packages
-
+from setuptools.command.test import test as TestCommand
 
 if sys.version_info < (3, 5,):
     raise RuntimeError("aiotasks requires Python 3.5.0+")
@@ -54,12 +54,30 @@ with open(join(dirname(__file__), 'requirements.txt')) as f:
 with open(join(dirname(__file__), 'requirements-performance.txt')) as f:
     required_performance = f.read().splitlines()
 
-# with open(join(dirname(__file__), 'requirements-dev.txt')) as f:
-#     required_test = f.read().splitlines()
+with open(join(dirname(__file__), 'requirements-dev.txt')) as f:
+    required_test = f.read().splitlines()
 
 with open(join(dirname(__file__), 'README.rst')) as f:
     long_description = f.read()
 
+
+class PyTest(TestCommand):
+    user_options = []
+
+    def run(self):
+        import subprocess
+        import sys
+        errno = subprocess.call([sys.executable,
+                                 '-m',
+                                 'pytest',
+                                 '--cov-report',
+                                 'html',
+                                 '--cov-report',
+                                 'term',
+                                 '--cov',
+                                 'apitest'])
+        raise SystemExit(errno)
+    
 setup(
     name='aiotasks',
     version=version,
@@ -74,7 +92,7 @@ setup(
         'performance':  required_performance
     },
     entry_points={'console_scripts': [
-        'aiotasks = aiotasks.actions.default.cli:cli',
+        'aiotasks = aiotasks.actions.cli:cli',
     ]},
     description='A Celery like task manager for the new AsyncIO Python module',
     long_description=long_description,
@@ -87,5 +105,7 @@ setup(
         'Operating System :: POSIX',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-    ]
+    ],
+    tests_require=required_test,
+    cmdclass=dict(test=PyTest)
 )

@@ -1,5 +1,4 @@
 import os
-import asyncio
 import importlib
 
 from functools import partial
@@ -13,7 +12,7 @@ here = os.getcwd()
 get_path = partial(os.path.join, here)
 
 
-def run_default_aiotasks(config: AioTasksDefaultModel):
+def find_manager(config: AioTasksDefaultModel) -> AsyncTaskBase:
     assert isinstance(config, AioTasksDefaultModel)
 
     _module = str(config.application)
@@ -38,13 +37,6 @@ def run_default_aiotasks(config: AioTasksDefaultModel):
     if not manager:
         raise AioTasksError("Not found AsyncTaskBase subclass instance")
 
-    manager.run()
-    try:
-        manager.loop.run_forever()
-    finally:
-        for task in asyncio.Task.all_tasks(loop=manager.loop):
-            task.cancel()
-        manager.loop.run_forever()
+    return manager
 
-
-__all__ = ("run_default_aiotasks", )
+__all__ = ("find_manager",)

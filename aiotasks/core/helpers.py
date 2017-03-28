@@ -1,6 +1,7 @@
 """
 This file contains utils and reusable functions
 """
+import logging
 
 from collections import namedtuple
 
@@ -27,4 +28,15 @@ def dict_to_obj(data):
     return obj(**data)
 
 
-__all__ = ("dict_to_obj", )
+def get_log_level(verbosity: int) -> int:
+    verbosity *= 10
+
+    if verbosity > logging.CRITICAL:
+        verbosity = logging.CRITICAL
+
+    if verbosity < logging.DEBUG:
+        verbosity = logging.DEBUG
+
+    return (logging.CRITICAL - verbosity) + 10
+
+__all__ = ("dict_to_obj", "get_log_level")

@@ -1,5 +1,9 @@
 from urllib.parse import urlparse
 
+BANNER = """
+
+"""
+
 
 def parse_dsn(dsn: str) -> tuple:
     """Get a DSN and return pased info as:
@@ -40,4 +44,4 @@ def parse_dsn(dsn: str) -> tuple:
     return user, password, host, port, db
 
 
-__all__ = ("parse_dsn", )
+__all__ = ("parse_dsn", "BANNER")

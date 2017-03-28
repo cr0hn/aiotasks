@@ -35,10 +35,10 @@ class AsyncTaskSubscribeMemory(AsyncTaskSubscribeBase):
     def __init__(self,
                  prefix: str = "aiotasks",
                  loop=None):
-        super().__init__(prefix, loop)
+        super().__init__(loop=loop, prefix=prefix)
 
         self._loop_subscribers = loop or asyncio.get_event_loop()
-        self.topics_messages = asyncio.Queue(loop=self.loop_subscribers)
+        self.topics_messages = asyncio.Queue(loop=self._loop_subscribers)
 
     async def publish(self, topic, info):
         await self.topics_messages.put(("{}:{}".format(self.prefix, topic),
@@ -73,9 +73,9 @@ class AsyncTaskDelayMemory(AsyncTaskDelayBase):
                  prefix: str = "aiotasks",
                  loop=None,
                  concurrency: int = 5):
-        super().__init__(prefix, loop, concurrency)
+        super().__init__(loop=loop, prefix=prefix, concurrency=concurrency)
 
-        self._task_queue = asyncio.Queue(loop=self.loop_delay)
+        self._task_queue = asyncio.Queue(loop=self._loop_delay)
 
     async def has_pending_tasks(self):
         return not self._task_queue.empty() or bool(self.task_running_tasks)

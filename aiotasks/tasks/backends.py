@@ -11,9 +11,9 @@ except ImportError:
 
 
 from ..core.exceptions import AioTasksValueError
-from .bases import AsyncTaskBase, AsyncTaskSubscribeBase, AsyncTaskDelayBase
 from .redis import AsyncTaskDelayRedis, AsyncTaskSubscribeRedis
 from .memory import AsyncTaskSubscribeMemory, AsyncTaskDelayMemory
+from .bases import AsyncTaskBase, AsyncTaskSubscribeBase, AsyncTaskDelayBase
 
 log = logging.getLogger("aiotasks")
 
@@ -36,25 +36,24 @@ class MemoryBackend(AsyncTaskDelayMemory,
                     AsyncTaskBase):
 
     def __init__(self,
-                 prefix: str = "aoitasks",
-                 loop=None):
-        self.loop = loop or asyncio.get_event_loop()
+                 dsn,
+                 loop,
+                 prefix: str = "aoitasks"):
         self.prefix = prefix
 
-        AsyncTaskSubscribeMemory.__init__(self, prefix=prefix, loop=loop)
-        AsyncTaskDelayMemory.__init__(self, prefix=prefix, loop=loop)
-        AsyncTaskBase.__init__(self)
-
-        # This line is necessary to close redis connections
-        atexit.register(self.stop)
+        AsyncTaskSubscribeMemory.__init__(self, loop=loop, prefix=prefix)
+        AsyncTaskDelayMemory.__init__(self, loop=loop, prefix=prefix)
+        AsyncTaskBase.__init__(self, dsn=dsn, loop=loop)
 
 
 class RedisBackend(AsyncTaskSubscribeRedis,
                    AsyncTaskDelayRedis,
                    AsyncTaskBase):
 
-    def __init__(self, dsn, prefix: str = "aiotasks", loop=None):
-        self.loop = loop or asyncio.get_event_loop()
+    def __init__(self,
+                 dsn: str,
+                 loop,
+                 prefix: str = "aiotasks"):
 
         AsyncTaskSubscribeRedis.__init__(self,
                                          dsn=dsn,
@@ -64,7 +63,7 @@ class RedisBackend(AsyncTaskSubscribeRedis,
                                      dsn=dsn,
                                      prefix=prefix,
                                      loop=loop)
-        AsyncTaskBase.__init__(self)
+        AsyncTaskBase.__init__(self, dsn=dsn, loop=loop)
 
         # This line is necessary to close redis connections
         atexit.register(self.stop)
@@ -89,7 +88,7 @@ def build_manager(dsn: str = "memory://",
         loop.set_debug(True)
 
     if dsn.startswith("memory"):
-        ret = MemoryBackend(prefix=prefix, loop=loop)
+        ret = MemoryBackend(dsn=dsn, prefix=prefix, loop=loop)
     elif dsn.startswith("redis"):
         ret = RedisBackend(dsn=dsn, prefix=prefix, loop=loop)
     else:

@@ -9,7 +9,7 @@ def main():
     __package__ = str("aiotasks")
 
     # Run the cmd
-    from aiotasks.actions.default.cli import cli
+    from aiotasks.actions.cli import cli
 
     cli()
 

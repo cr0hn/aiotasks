@@ -5,7 +5,7 @@ import logging
 
 from aiotasks import global_options
 
-from .console import launch_aiotasks_in_console
+from .worker.console import launch_aiotasks_worker_in_console
 
 
 log = logging.getLogger('aiotasks')
@@ -18,12 +18,12 @@ def cli(ctx, **kwargs):  # pragma no cover
 
 
 @cli.command(help="Launch aiotasks")
-@click.pass_context
 @click.option('-A', '--app', 'application', required=True)
 @click.option('--loglevel', '-l', 'log_level')
 @click.option('--config', 'config_file')
+@click.pass_context
 def worker(ctx, **kwargs):
-    launch_aiotasks_in_console(ctx.obj, **kwargs)
+    launch_aiotasks_worker_in_console(ctx.obj, **kwargs)
 
 
 if __name__ == "__main__" and __package__ is None:  # pragma no cover

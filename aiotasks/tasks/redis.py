@@ -42,7 +42,7 @@ class AsyncTaskSubscribeRedis(AsyncTaskSubscribeBase):
                  dsn: str = "redis://127.0.0.1:6379/0",
                  prefix: str = "aiotasks",
                  loop=None):
-        super().__init__(prefix, loop)
+        super().__init__(loop=loop, prefix=prefix)
 
         _, password, host, port, db = parse_dsn(dsn)
 
@@ -50,20 +50,25 @@ class AsyncTaskSubscribeRedis(AsyncTaskSubscribeBase):
             port = 6379
 
         port = int(port)
-        if not db:
+        try:
+            db = int(db)
+            
+            if not db:
+                db = 0
+        except ValueError:
             db = 0
 
-        self._redis_pub = self.loop_subscribers.run_until_complete(
+        self._redis_pub = self._loop_subscribers.run_until_complete(
             aioredis.create_redis(address=(host, port),
                                   db=db,
                                   password=password,
-                                  loop=self.loop_subscribers))
+                                  loop=self._loop_subscribers))
 
-        self._redis_sub = self.loop_subscribers.run_until_complete(
+        self._redis_sub = self._loop_subscribers.run_until_complete(
             aioredis.create_redis(address=(host, port),
                                   db=db,
                                   password=password,
-                                  loop=self.loop_subscribers))
+                                  loop=self._loop_subscribers))
 
     async def publish(self, topic, info):
         # Wait for channel listener
@@ -92,10 +97,10 @@ class AsyncTaskSubscribeRedis(AsyncTaskSubscribeBase):
         self._redis_sub.close()
         self._redis_pub.close()
 
-        if not self.loop_subscribers.is_closed():
-            self.loop_subscribers. \
+        if not self._loop_subscribers.is_closed():
+            self._loop_subscribers. \
                 run_until_complete(self._redis_sub.wait_closed())
-            self.loop_subscribers. \
+            self._loop_subscribers. \
                 run_until_complete(self._redis_pub.wait_closed())
 
 
@@ -109,7 +114,7 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
                  prefix: str = "aiotasks",
                  concurrency: int = 5,
                  loop=None):
-        super().__init__(prefix, loop, concurrency)
+        super().__init__(loop=loop, prefix=prefix, concurrency=concurrency)
 
         _, password, host, port, db = parse_dsn(dsn)
 
@@ -117,20 +122,24 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
             port = 6379
 
         port = int(port)
-        if not db:
+        try:
+            db = int(db)
+            if not db:
+                db = 0
+        except ValueError:
             db = 0
 
-        self._redis_consumer = self.loop_delay. \
+        self._redis_consumer = self._loop_delay. \
             run_until_complete(aioredis.create_redis(address=(host, port),
                                                      db=db,
                                                      password=password,
-                                                     loop=self.loop_delay))
+                                                     loop=self._loop_delay))
 
-        self._redis_poller = self.loop_delay. \
+        self._redis_poller = self._loop_delay. \
             run_until_complete(aioredis.create_redis(address=(host, port),
                                                      db=db,
                                                      password=password,
-                                                     loop=self.loop_delay))
+                                                     loop=self._loop_delay))
 
     async def has_pending_tasks(self):
         return bool(self.task_running_tasks) \
@@ -143,10 +152,10 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
         for t in self.task_running_tasks.values():
             t.cancel()
 
-        if not self.loop_delay.is_closed():
-            self.loop_delay. \
+        if not self._loop_delay.is_closed():
+            self._loop_delay. \
                 run_until_complete(self._redis_consumer.wait_closed())
-            self.loop_delay. \
+            self._loop_delay. \
                 run_until_complete(self._redis_poller.wait_closed())
 
     @property
