@@ -79,7 +79,9 @@ Running using the manager
 Running standalone
 ++++++++++++++++++
 
-> python examples/standalone_tasks_standalone.py
+.. code-block:: bash
+
+    > python examples/standalone_tasks_standalone.py
 
 Defining tasks
 --------------
@@ -175,7 +177,7 @@ Custom Redis server:
 
     ...
 
-** In memory **
+**In memory**
 
 This execution mode is useful to do small and local tasks. For example: If you're using aiohttp and want to send and email in a background way, you can use the standalone way and the memory backend.
 
