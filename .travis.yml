@@ -25,19 +25,13 @@ script: tox
 os:
   - linux
 
-cache:
-  directories:
-  - $HOME/.cache/pip
-
-
 deploy:
 
-    # Deploy to PyPI
+  # Deploy to PyPI
   - provider: script
     script: deploy/pypi.sh
     on:
       branch: master
-
   #- provider: releases
   #  api_key: $GITHUB_AUTH
   #  file: dist/*.tar.gz

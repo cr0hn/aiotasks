@@ -104,7 +104,9 @@ This concept was ported from Celery. Define any tasks is very simple, only need 
 Sending info to tasks
 ---------------------
 
-Currently aiotasks only support send information using the *delay(...)* method and need to be access to the task definition:
+We can send task to the manager using methods:
+
+**Using *Delay*:**
 
 .. code-block:: python
 
@@ -120,6 +122,26 @@ Currently aiotasks only support send information using the *delay(...)* method a
         # Generates 5 tasks
         for x in range(5):
             await task_01.delay(x)  # <-- METHOD DELAY SEND A TASK
+
+    if __name__ == '__main__':
+        manager.loop.run_until_complete(generate_tasks())
+
+**Using *send_task*:**
+
+.. code-block:: python
+
+    from aiotasks import build_manager, send_task
+
+    manager = build_manager("redis://")
+
+    @manager.task()
+    async def task_01(num):
+        await asyncio.sleep(0, loop=manager.loop)
+
+    async def generate_tasks():
+        # Generates 5 tasks
+        for x in range(5):
+            await send_task("task_01", args=(x, ))  # <-- SENDING A TASK
 
     if __name__ == '__main__':
         manager.loop.run_until_complete(generate_tasks())

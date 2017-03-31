@@ -79,11 +79,11 @@ setup(
     entry_points={'console_scripts': [
         'aiotasks = aiotasks.actions.cli:cli',
     ]},
-    description='A Celery like task manager that distributes Asyncio coroutines',
+    description='A Celery like task manager that distributes '
+                'Asyncio coroutines',
     long_description=long_description,
     classifiers=[
         'Environment :: Console',
-        'Intended Audience :: Software Development',
         'License :: OSI Approved :: BSD License',
         'Operating System :: MacOS',
         'Operating System :: Microsoft :: Windows',
