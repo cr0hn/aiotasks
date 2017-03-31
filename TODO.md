@@ -4,20 +4,20 @@ TODO
 New features
 ------------
 
-- [ ] Add a `send_tasks(..)` function
-- [ ] Add `current_app` var, like Flask does.
+- [X] Add a `send_tasks(..)` function
+- [X] Add `current_app` var, like Flask does.
 - [ ] Add actor model for each consummer
 - [ ] Add ack when a messages was processed ok in an task
 - [ ] Add RabbitMQ as a broker
 - [ ] Add ZeroMQ as a broker
-- [ ] Add plugin for aiohttp
+- [X] Add plugin for aiohttp
 - [ ] Next task to execute
 
 Improvements
 ------------ 
 
 - [ ] Fix the fixture `redis_instance` to fix the correct shutdown of Redis test service
-- [ ] Add a warning message when use `memory://` as a backend.
+- [X] Add a warning message when use `memory://` as a backend.
 - [ ] Add unsubscribe method for AsyncTaskSubscribeBase base class
 - [ ] Add Cython in critical parts
 

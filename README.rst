@@ -1,7 +1,7 @@
 aiotasks
 ========
 
-*aiotasks: A Celery like task manager for the new AsyncIO Python module*
+*aiotasks: A Celery like task manager that distributes Asyncio coroutines*
 
 .. image::  doc/source/_static/logo-128x128.png
     :height: 64px

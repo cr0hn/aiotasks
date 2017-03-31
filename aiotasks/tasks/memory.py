@@ -23,7 +23,7 @@ class MemoryAsyncWaitContextManager(AsyncWaitContextManager):
         return asyncio.ensure_future(
             self.poller.put((self.list_name,
                              msgpack.packb(dict(task_id=task_id,
-                                                function=self.fn.function_name,
+                                                function=self.function_name,
                                                 args=self.args,
                                                 kwargs=self.kwargs),
                                            use_bin_type=True))),

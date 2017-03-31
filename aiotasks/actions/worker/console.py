@@ -22,6 +22,13 @@ def make_summary(config: AioTasksDefaultModel,
                  subscribers: dict) -> str:
     now = datetime.datetime.now()
     
+    display_subscriptions = []
+    for topic, clients in subscribers.items():
+        display_subscriptions.append("'{}'".format(topic))
+        
+        for client in clients:
+            display_subscriptions.append("   > {}".format(client.__name__))
+    
     return """
  \033[1;37;40m--------------
 --------------- aiotasks@{hostname} {version}
@@ -49,8 +56,8 @@ def make_summary(config: AioTasksDefaultModel,
            time=now.strftime("%H:%M:%S"),
            app_id=hex(current_thread().ident),
            concurrency=config.concurrency,
-           tasks="  \n".join(tasks_available),
-           subscriptions="".join("  topic: %s\n    - %s" % (x, fv.__name__) for x, y in subscribers.items() for fv in y ))
+           tasks="-  \n".join(tasks_available),
+           subscriptions="\n".join(display_subscriptions))
 
 
 def launch_aiotasks_worker_in_console(shared_config, **kwargs):

@@ -21,14 +21,17 @@ class AsyncWaitContextManager:
     def __init__(self,
                  *args,
                  **kwargs):
+        assert len(args) >= 5
+        
         self.fn = args[0]
         self.list_name = args[1]
         self.poller = args[2]
-        self.loop = args[3] or asyncio.get_event_loop()
+        self.function_name = args[3]
+        self.loop = args[4] or asyncio.get_event_loop()
         self.timeout = kwargs.pop("timeout", 0)
         self.infinite_timeout = kwargs.pop("infinite_timeout", 900)
 
-        self.args = args[4:]
+        self.args = args[5:]
         self.kwargs = kwargs
 
     @abc.abstractmethod
