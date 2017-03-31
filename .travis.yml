@@ -5,21 +5,22 @@ python:
   - "3.5"
   - "3.6"
 
-services:
-  - redis-server
+#services:
+#  - redis-server
 
 # command to install dependencies
 install:
   - pip install --upgrade pip wheel
   - pip install --upgrade setuptools
-  - pip install tox-travis
+  - pip install tox
+  #- pip install tox-travis
 
 # command to run tests
 script: tox
 
-after_success:
-  - pip install codecov
-  - codecov
+#after_success:
+#  - pip install codecov
+#  - codecov
 
 os:
   - linux
