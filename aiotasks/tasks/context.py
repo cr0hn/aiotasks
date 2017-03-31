@@ -22,7 +22,7 @@ class AsyncWaitContextManager:
                  *args,
                  **kwargs):
         assert len(args) >= 5
-        
+
         self.fn = args[0]
         self.list_name = args[1]
         self.poller = args[2]

@@ -26,26 +26,26 @@ def find_manager(config: AioTasksDefaultModel) -> AsyncTaskBase:
         app = importlib.import_module(_module)
     except ImportError:
         _module_with_extension = "{}.py".format(_module)
-        
+
         # If import fails, try lo add the container folder to the path
         if os.path.exists(os.path.join(os.getcwd(), _module_with_extension)):
             _import_path = os.getcwd()
             _module = _module.replace("/", ".")
-            
+
         elif os.path.exists(_module_with_extension):
             _pkg = os.path.dirname(os.path.abspath(_module_with_extension))
-            
+
             if _pkg.startswith("/"):
                 _pkg = _pkg[1:]
-            
+
             _import_path = _pkg
             _module = _module.replace("/", ".")
-            
+
         else:
             raise ValueError("Can't determinate module location")
-        
+
         sys.path.append(_import_path)
-        
+
         app = importlib.import_module(_module)
 
     manager = None
@@ -63,5 +63,6 @@ def find_manager(config: AioTasksDefaultModel) -> AsyncTaskBase:
         raise AioTasksError("Not found AsyncTaskBase subclass instance")
 
     return manager
+
 
 __all__ = ("find_manager",)

@@ -52,7 +52,7 @@ class AsyncTaskSubscribeRedis(AsyncTaskSubscribeBase):
         port = int(port)
         try:
             db = int(db)
-            
+
             if not db:
                 db = 0
         except ValueError:

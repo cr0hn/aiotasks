@@ -25,9 +25,10 @@ def run_with_exceptions_and_logs(function, config):
         log.console("[*] CTRL+C caught. Exiting...")
     except Exception as e:
         log.critical("[!] Unhandled exception: {}".format(e))
-        
+
         if config.debug:
-            log.exception("[!] Unhandled exception: {}".format(e), stack_info=True)
+            log.exception("[!] Unhandled exception: {}".format(e),
+                          stack_info=True)
     finally:
         log.console("[*] Shutdown...")
 

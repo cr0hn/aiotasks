@@ -39,4 +39,5 @@ def get_log_level(verbosity: int) -> int:
 
     return (logging.CRITICAL - verbosity) + 10
 
+
 __all__ = ("dict_to_obj", "get_log_level")

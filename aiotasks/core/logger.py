@@ -68,4 +68,5 @@ def setup_file_logger(location_file_name: str):
     log_file.setFormatter(file_format)
     logger.addHandler(log_file)
 
+
 __all__ = ("setup_logging", "setup_file_logger", "CONSOLE_LEVEL")
