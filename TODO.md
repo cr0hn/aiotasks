@@ -25,6 +25,8 @@ Improvements
 Testing
 ------- 
 
+- [ ] Add / fix unit testing
+- [ ] Add integration tests
 - [ ] Add cyclomatic complexity check
 - [ ] Add Pylint test
 - [X] Add flake8 test

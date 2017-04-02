@@ -135,18 +135,12 @@ html_theme = 'alabaster'
 html_theme_options = {
     'logo': 'logo-128x128.png',
     'touch_icon': 'favicon.ico',
-    'description': 'A Celery like task manager for the new AsyncIO Python module',
+    'description': 'A Celery like task manager that distributes Asyncio coroutines',
     'github_user': 'cr0hn',
     'github_repo': 'aiotasks',
     'github_button': True,
     'github_type': 'star',
     'github_banner': True,
-    'pre_bg': '#FFF6E5',
-    'note_bg': '#E5ECD1',
-    'note_border': '#BFCF8C',
-    'body_text': '#482C0A',
-    'sidebar_text': '#49443E',
-    'sidebar_header': '#4B4032',
     'show_powered_by': False,
     'logo_text_align': "center"
 }
@@ -221,20 +215,20 @@ html_search_language = 'en'
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'aiotasksdoc'
+htmlhelp_basename = 'aiotasks doc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #'papersize': 'letterpaper',
-    
+
     # The font size ('10pt', '11pt' or '12pt').
     #'pointsize': '10pt',
-    
+
     # Additional stuff for the LaTeX preamble.
     #'preamble': '',
-    
+
     # Latex figure (float) alignment
     #'figure_align': 'htbp',
 }
@@ -243,7 +237,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'aiotasks.tex', u'aiotasksDocumentation',
+    (master_doc, 'aiotasks.tex', u'aiotasks Documentation',
      u'Daniel Garcia - cr0hn', 'manual'),
 ]
 

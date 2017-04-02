@@ -39,175 +39,34 @@ aiotasks
 What's aiotasks
 ---------------
 
-aiotasks is an asynchronous task queue/job queue based on distributed message passing based on Python asyncio framework. Based on the Celery Task Queue ideas, but focusing in performance, non-blocking, event-driven.
+aiotasks is an asynchronous & distributed task queue / jobs queue,
+implemented as coroutines and based on Python asyncio framework.
 
-aiotasks doesn't does pulling or active waiting for tasks jobs, instead use asyncio framework to suspend the execution until any new data are received by the broker actively.
+Based on the Celery Task Queue ideas, but distributing coroutines and doing
+focus in performance, non-blocking & event-driven concepts.
 
-    aiotaks is still under development. Not as active as I would like (for time limitations), but the project is in active development.
+aiotasks doesn't pulling and doesn't has active waiting for incoming jobs,
+instead use asyncio framework to suspend the execution until any new data
+are received by a new broker notification.
 
-    If you wan't contribute, take a look to the TODO.md file.
+Documentation
+-------------
 
-Usage
------
+You can find documentation at: https://aiotasks.readthedocs.org/
 
-    You can find examples at *examples* folder.
+Licence
+-------
 
-You can run aiotasks as two ways:
+aiotasks is released under `BSD license <https://github
+.com/cr0hn/aiotasks/blob/master/LICENSE>`_.
 
-- Launching a aiotasks manager in an independent console / process (like Celery does), and then send any tasks to aiotasks thought the broker.
-- Running the standalone way: Launching the client and the server in an unique point an running both at the same time.
+Contributors
+------------
 
-Running using the manager
-+++++++++++++++++++++++++
+Contributors are welcome. You can find a list ot TODO tasks in the `TODO.md
+<https://github.com/cr0hn/aiotasks/blob/master/TODO.md>`_ at the project file.
 
-    Currently there's a limitation for launching the tasks. Python files with the tasks should be in a package to be able for aiotasks to import them.
+All contributors will be added to the `CONTRIBUTORS.md
+<https://github.com/cr0hn/aiotasks/blob/master/CONTRIBUTORS.md>`_ file.
 
-    This limitation is in TODO to fix in the future, to allow to import .py directly without be inside in a package.
-
-**Run the manager**
-
-.. code-block:: bash
-
-    > aiotasks -vvvv worker -A examples.launch_manager_tasks_and_launch_in_console
-
-**Send the tasks**
-
-.. code-block:: bash
-
-    > python examples/launch_manager_tasks_and_launch_in_console.py
-
-Running standalone
-++++++++++++++++++
-
-.. code-block:: bash
-
-    > python examples/standalone_tasks_standalone.py
-
-Defining tasks
---------------
-
-This concept was ported from Celery. Define any tasks is very simple, only need to decorate a function with *task* function.
-
-.. code-block:: python
-
-    from aiotasks import build_manager
-
-    manager = build_manager("redis://")
-
-    @manager.task()  # <-- DEFINITION OF TASK
-    async def task_01(num):  # <-- TASK SHOULD BE A **COROUTINE**
-        print("Task 01 starting: {}".format(num))
-        await asyncio.sleep(2, loop=manager.loop)
-        print("Task 01 stopping")
-
-
-Sending info to tasks
----------------------
-
-We can send task to the manager using methods:
-
-**Using *Delay*:**
-
-.. code-block:: python
-
-    from aiotasks import build_manager
-
-    manager = build_manager("redis://")
-
-    @manager.task()
-    async def task_01(num):
-        await asyncio.sleep(0, loop=manager.loop)
-
-    async def generate_tasks():
-        # Generates 5 tasks
-        for x in range(5):
-            await task_01.delay(x)  # <-- METHOD DELAY SEND A TASK
-
-    if __name__ == '__main__':
-        manager.loop.run_until_complete(generate_tasks())
-
-**Using *send_task*:**
-
-.. code-block:: python
-
-    from aiotasks import build_manager, send_task
-
-    manager = build_manager("redis://")
-
-    @manager.task()
-    async def task_01(num):
-        await asyncio.sleep(0, loop=manager.loop)
-
-    async def generate_tasks():
-        # Generates 5 tasks
-        for x in range(5):
-            await send_task("task_01", args=(x, ))  # <-- SENDING A TASK
-
-    if __name__ == '__main__':
-        manager.loop.run_until_complete(generate_tasks())
-
-Sending info to tasks & wait for response
------------------------------------------
-
-We can also send for a task job and wait for the response in a **non-blocking mode**:
-
-.. code-block:: python
-
-    from aiotasks import build_manager
-
-    manager = build_manager("redis://")
-
-    @manager.task()
-    async def task_01(num):
-        await asyncio.sleep(0, loop=manager.loop)
-
-    async def generate_tasks():
-        # Generates 5 tasks
-        async with task_01.wait(x) as f:  # <-- NON-BLOCKING WAITING FOR RESPONSE
-            print(f)
-
-    if __name__ == '__main__':
-        manager.loop.run_until_complete(generate_tasks())
-
-Backends
---------
-
-Currently only two backend are supported:
-
-- Redis: redis://HOST:PORT/DB
-- In memory: memory://
-
-**Redis**
-
-Connect to localhost and default Redis options:
-
-.. code-block:: python
-
-    from aiotasks import build_manager
-
-    manager = build_manager("redis://")
-
-    ...
-
-Custom Redis server:
-
-.. code-block:: python
-
-    from aiotasks import build_manager
-
-    manager = build_manager("redis://:mypassword@10.0.0.1/12")
-
-    ...
-
-**In memory**
-
-This execution mode is useful to do small and local tasks. For example: If you're using aiohttp and want to send and email in a background way, you can use the standalone way and the memory backend.
-
-.. code-block:: python
-
-    from aiotasks import build_manager
-
-    manager = build_manager("memory://")
-
-    ...
-
+Thanks in advance if you're planning to contribute to the project! :)
