@@ -30,8 +30,10 @@ deploy:
   # Deploy to PyPI
   - provider: script
     script: deploy/pypi.sh
+    skip_cleanup: true
     on:
       branch: master
+
   #- provider: releases
   #  api_key: $GITHUB_AUTH
   #  file: dist/*.tar.gz
