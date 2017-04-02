@@ -20,13 +20,16 @@ aiotasks
 .. image:: https://codecov.io/gh/cr0hn/aiotasks/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/cr0hn/aiotasks
 
+.. image:: https://readthedocs.org/projects/aiotasks/badge/?version=latest
+    :target: http://aiotasks.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 +----------------+------------------------------------------------+
 |Project site    | https://github.com/cr0hn/aiotasks              |
 +----------------+------------------------------------------------+
 |Issues          | https://github.com/cr0hn/aiotasks/issues/      |
 +----------------+------------------------------------------------+
-|Documentation   | https://aiotasks.readthedocs.org/              |
+|Documentation   | http://aiotasks.readthedocs.io                 |
 +----------------+------------------------------------------------+
 |Author          | Daniel Garcia (cr0hn) - @ggdaniel              |
 +----------------+------------------------------------------------+

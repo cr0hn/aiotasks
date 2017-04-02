@@ -1,9 +1,3 @@
-# Doc
-sphinx
-alabaster
-sphinxcontrib-asyncio
-
-# Testing
 pytest
 pytest-xdist
 pytest-asyncio
