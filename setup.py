@@ -61,7 +61,7 @@ with open(join(dirname(__file__), 'README.rst')) as f:
     long_description = f.read()
 
 with open(join(dirname(__file__), 'CHANGELOG.rst')) as f:
-    long_description = "\n".join((long_description, f.read()))
+    long_description += "\n".join((long_description, "\n", f.read()))
 
 setup(
     name='aiotasks',
