@@ -6,12 +6,18 @@ New features
 
 - [X] Add a `send_tasks(..)` function
 - [X] Add `current_app` var, like Flask does.
-- [ ] Add actor model for each consummer
+- [ ] Add actor model. A coroutine that can save the state and always are 
+alive.
+- [ ] Easy way to to run a list of coroutines in a pool manager. Without 
+need of start the manager. Only a function like: `run_in_pool([...])`. And 
+this function inherit the limits, workers, etc.
 - [ ] Add ack when a messages was processed ok in an task
 - [ ] Add RabbitMQ as a broker
 - [ ] Add ZeroMQ as a broker
 - [X] Add plugin for aiohttp
 - [ ] Next task to execute
+- [ ] Live reload of coroutines or hot-loading.
+
 
 Improvements
 ------------ 

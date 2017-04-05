@@ -29,8 +29,9 @@ deploy:
 
   # Deploy to PyPI
   - provider: script
-    script: deploy/pypi.sh
-    skip_cleanup: true
+    user: $PYPI_USER
+    password: $PYPI_PASSWD
+    distributions: "sdist"
     on:
       branch: master
 
