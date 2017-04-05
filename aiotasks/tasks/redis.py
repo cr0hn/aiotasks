@@ -1,17 +1,9 @@
-# -*- coding: utf-8 -*-
-
-import uuid
 import logging
 import aioredis
 
 from .bases import *
 from ..helpers import parse_dsn
 from .context import AsyncWaitContextManager
-
-try:
-    import umsgpack as msgpack
-except ImportError:  # pragma: no cover
-    import msgpack
 
 log = logging.getLogger("aiotasks")
 
@@ -22,15 +14,9 @@ class RedisAsyncWaitContextManager(AsyncWaitContextManager):
         super().__init__(*args, **kwargs)
 
     def __await__(self, *args, **kwargs):
-        task_id = uuid.uuid4().hex
-
         return self.poller.lpush(
             self.list_name,
-            msgpack.packb(dict(task_id=task_id,
-                               function=self.function_name,
-                               args=self.args,
-                               kwargs=self.kwargs),
-                          use_bin_type=True)).__await__()
+            self.build_delay_message()).__await__()
 
 
 # -------------------------------------------------------------------------
@@ -44,19 +30,22 @@ class AsyncTaskSubscribeRedis(AsyncTaskSubscribeBase):
                  loop=None):
         super().__init__(loop=loop, prefix=prefix)
 
-        _, password, host, port, db = parse_dsn(dsn)
+        _, password, host, port, db = parse_dsn(dsn,
+                                                default_port=6379,
+                                                default_db=0)
+        db = int(db)
 
-        if not port:
-            port = 6379
-
-        port = int(port)
-        try:
-            db = int(db)
-
-            if not db:
-                db = 0
-        except ValueError:
-            db = 0
+        # if not port:
+        #     port = 6379
+        #
+        # port = int(port)
+        # try:
+        #     db = int(db)
+        #
+        #     if not db:
+        #         db = 0
+        # except ValueError:
+        #     db = 0
 
         self._redis_pub = self._loop_subscribers.run_until_complete(
             aioredis.create_redis(address=(host, port),
@@ -77,8 +66,7 @@ class AsyncTaskSubscribeRedis(AsyncTaskSubscribeBase):
 
         await self._redis_pub.publish(
             "{}:{}".format(self.prefix, topic),
-            msgpack.packb(dict(topic=topic, data=info),
-                          use_bin_type=True))
+            self.build_subscribe_message(**dict(topic=topic, data=info)))
 
     async def has_pending_topics(self):
         return bool(self.running_tasks)
@@ -116,18 +104,22 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
                  loop=None):
         super().__init__(loop=loop, prefix=prefix, concurrency=concurrency)
 
-        _, password, host, port, db = parse_dsn(dsn)
+        _, password, host, port, db = parse_dsn(dsn,
+                                                default_port=6379,
+                                                default_db=0)
 
-        if not port:
-            port = 6379
+        db = int(db)
 
-        port = int(port)
-        try:
-            db = int(db)
-            if not db:
-                db = 0
-        except ValueError:
-            db = 0
+        # if not port:
+        #     port = 6379
+        #
+        # port = int(port)
+        # try:
+        #     db = int(db)
+        #     if not db:
+        #         db = 0
+        # except ValueError:
+        #     db = 0
 
         self._redis_consumer = self._loop_delay. \
             run_until_complete(aioredis.create_redis(address=(host, port),

@@ -1,11 +1,5 @@
-import uuid
 import asyncio
 import logging
-
-try:
-    import umsgpack as msgpack
-except ImportError:  # pragma: no cover
-    import msgpack
 
 from .bases import *
 from .context import AsyncWaitContextManager
@@ -18,15 +12,9 @@ class MemoryAsyncWaitContextManager(AsyncWaitContextManager):
         super().__init__(*args, **kwargs)
 
     def __await__(self, *args, **kwargs):
-        task_id = uuid.uuid4().hex
-
         return asyncio.ensure_future(
             self.poller.put((self.list_name,
-                             msgpack.packb(dict(task_id=task_id,
-                                                function=self.function_name,
-                                                args=self.args,
-                                                kwargs=self.kwargs),
-                                           use_bin_type=True))),
+                             self.build_delay_message())),
             loop=self.loop).__await__()
 
 
@@ -41,10 +29,12 @@ class AsyncTaskSubscribeMemory(AsyncTaskSubscribeBase):
         self.topics_messages = asyncio.Queue(loop=self._loop_subscribers)
 
     async def publish(self, topic, info):
-        await self.topics_messages.put(("{}:{}".format(self.prefix, topic),
-                                        msgpack.packb(dict(topic=topic,
-                                                           data=info),
-                                                      use_bin_type=True)))
+        await self.topics_messages.put(
+            (
+                "{}:{}".format(self.prefix, topic),
+                self.build_subscribe_message(**dict(topic=topic, data=info))
+            )
+        )
 
     async def has_pending_topics(self):
         return not self.topics_messages.empty()

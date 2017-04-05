@@ -138,6 +138,10 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
     def stop_subscriptions(self):  # pragma: no cover
         pass
 
+    def build_subscribe_message(self, **kwargs) -> str:
+        return msgpack.packb(kwargs,
+                             use_bin_type=True)
+
 
 class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
     # -------------------------------------------------------------------------

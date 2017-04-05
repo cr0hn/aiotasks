@@ -5,7 +5,9 @@ BANNER = """
 """
 
 
-def parse_dsn(dsn: str) -> tuple:
+def parse_dsn(dsn: str,
+              default_port: int = None,
+              default_db: int = None) -> tuple:
     """Get a DSN and return pased info as:
 
     >>> dsn="redis://user:password@127.0.0.1:6379/0"
@@ -40,6 +42,12 @@ def parse_dsn(dsn: str) -> tuple:
         db = db[1:]
     if not db:
         db = ""
+
+    if default_port is not None and not port:
+        port = default_port
+
+    if default_db is not None and not db:
+        db = default_db
 
     return user, password, host, port, db
 

@@ -1,9 +1,11 @@
+
 import abc
 import uuid
 import asyncio
 import logging
 import concurrent
 
+from typing import List, Dict
 
 try:
     import umsgpack as msgpack
@@ -62,5 +64,34 @@ class AsyncWaitContextManager:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 
+    def build_delay_message(self,
+                            task_id: str = None,
+                            function_name: str = None,
+                            args: List[str] = None,
+                            kwargs: Dict = None) -> str:
+        """
+        If values are not specified, it will be taken from class atributes
+        
+        :return: message as a string 
+        :rtype: str
+        """
+        if task_id is None:
+            task_id = uuid.uuid4().hex
+
+        if function_name is None:
+            function_name = self.function_name
+
+        if args is None:
+            args = self.args
+
+        if kwargs is None:
+            kwargs = self.kwargs
+
+        return msgpack.packb(
+            dict(task_id=task_id,
+                 function=function_name,
+                 args=args,
+                 kwargs=kwargs),
+            use_bin_type=True)
 
 __all__ = ("AsyncWaitContextManager", )
