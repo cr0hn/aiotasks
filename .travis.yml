@@ -13,17 +13,22 @@ install:
   - pip install --upgrade pip wheel
   - pip install --upgrade setuptools
   - pip install tox-travis
-#  - pip install tox
 
-# command to run tests
-script: tox
+script:
+  # Only run tests if there's changes in python code
+  - CHANGES=$(git diff --name-only  aiotasks/)
+  - if [[ $CHANGES != "" ]]; then tox; fi
 
-#after_success:
-#  - pip install codecov
-#  - codecov
+after_success:
+  - pip install codecov
+  - codecov
 
 os:
   - linux
+
+cache:
+  directories:
+  - $HOME/.cache/pip
 
 deploy:
 
@@ -34,6 +39,8 @@ deploy:
     distributions: "sdist"
     on:
       branch: master
+      tags: true
+      condition: "CHANGES=$(git diff --name-only  aiotasks/) && if [[ $CHANGES != '' ]]; then tox; fi"
 
   #- provider: releases
   #  api_key: $GITHUB_AUTH

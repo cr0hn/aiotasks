@@ -14,9 +14,15 @@ this function inherit the limits, workers, etc.
 - [ ] Add ack when a messages was processed ok in an task
 - [ ] Add RabbitMQ as a broker
 - [ ] Add ZeroMQ as a broker
-- [X] Add plugin for aiohttp
+- [ ] Add plugin for aiohttp
+- [ ] Add plugin for Sanic
 - [ ] Next task to execute
 - [ ] Live reload of coroutines or hot-loading.
+- [ ] Selective tasks load when worker starts
+- [ ] Add support for cpu-bound tasks
+- [ ] Add support to mask a task as a disk I/O
+- [ ] Add Contrib functions: `send_to_celery(...)` function
+- [ ] Add REST admin interface
 
 
 Improvements

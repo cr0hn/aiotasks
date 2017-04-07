@@ -54,13 +54,10 @@ with open(join(dirname(__file__), 'requirements.txt')) as f:
 with open(join(dirname(__file__), 'requirements-performance.txt')) as f:
     required_performance = f.read().splitlines()
 
-with open(join(dirname(__file__), 'requirements-dev.txt')) as f:
-    required_test = f.read().splitlines()
-
 with open(join(dirname(__file__), 'README.rst')) as f:
     long_description = f.read()
 
-with open(join(dirname(__file__), 'CHANGELOG.rst')) as f:
+with open(join(dirname(__file__), 'CHANGELOG.md')) as f:
     long_description += "\n".join((long_description, "\n", f.read()))
 
 setup(
