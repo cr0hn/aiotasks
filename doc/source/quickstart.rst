@@ -12,10 +12,10 @@ Running modes
 
 You can run aiotasks as two ways:
 
-- Launching a aiotasks manager in an independent console / process (like
-Celery does), and then send any tasks to aiotasks thought the broker.
-- Running the standalone way: Launching the client and the server in an
-unique point an running both at the same time.
+- Launching an aiotasks manager in an independent console / process (like
+  Celery does), and then sending any tasks to aiotasks through the broker.
+- Running the standalone way: Launching the client and the server in a
+  unique point and running both at the same time.
 
 Running using the manager
 -------------------------
@@ -44,7 +44,7 @@ Running standalone
 Defining tasks
 --------------
 
-This concept was ported from Celery. Define any tasks is very simple, only
+This concept was ported from Celery. Defining any tasks is very simple, only
 need to decorate a function with *task* function.
 
 .. code-block:: python
@@ -63,7 +63,7 @@ need to decorate a function with *task* function.
 Sending info to tasks
 ---------------------
 
-We can send task to the manager using methods:
+We can send tasks to the manager using methods:
 
 Using *delay* method
 ++++++++++++++++++++
