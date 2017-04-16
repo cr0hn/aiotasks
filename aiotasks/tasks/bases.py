@@ -410,7 +410,7 @@ async def send_task(task_name, args=None, **kwargs):
     try:
         fn_name = manager.task_available_tasks[task_name]
     except KeyError:
-        raise ValueError("Function doesn't exits")
+        raise ValueError("Function doesn't exist")
 
     if not args:
         args = tuple()
@@ -433,7 +433,7 @@ def current_app():
     manager = builtins.__aiotasks__
 
     if not manager:
-        raise ValueError("Can't found aiotask manager")
+        raise ValueError("Can't find aiotask manager")
 
     return manager
 

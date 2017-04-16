@@ -1,7 +1,7 @@
 Install aiotasks
 ================
 
-Install aiotasks is very simple, depending of the release you want, you can
+Installing aiotasks is very simple, depending on the release you want, you can
 install:
 
 - stable version (**recomended**).

@@ -33,7 +33,7 @@ are received by a new broker notification.
     aiotaks is still under development. Not as active as I would like (for
     time limitations), but the project is in active development.
 
-    If you wan't contribute, take a look to the TODO.md file.
+    If you want to contribute, take a look to the TODO.md file.
 
 Contents
 --------

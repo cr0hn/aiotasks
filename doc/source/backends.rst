@@ -1,7 +1,7 @@
 Backends
 ========
 
-aiotasks support various backends. All of them are event-driven queue systems.
+aiotasks supports various backends. All of them are event-driven queue systems.
 
 Currently supported backends are:
 
@@ -61,12 +61,12 @@ Custom Redis server, with the information:
 Memory
 ------
 
-Memory is an special backend type. It should be used for small workload
-systems or develop environments.
+Memory is a special backend type. It should be used for small workload
+systems or development environments.
 
 
 This execution mode is useful to do small and local tasks. For example: If
-you're using aiohttp and you only want to send and email in a background way,
+you're using aiohttp and you only want to send an email in a background way,
 you can use the standalone way and the memory backend.
 
 The :samp:`BACKEND_TYPE` type is **memory** and the format is:
