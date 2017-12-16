@@ -135,7 +135,7 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
 
     async def has_pending_tasks(self):
         return bool(self.task_running_tasks) \
-               or not bool(await self._redis_poller.llen(self.task_list_name))
+               or bool(await self._redis_poller.llen(self.task_list_name))
 
     def stop_delayers(self):
         self._redis_consumer.close()
