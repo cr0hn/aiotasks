@@ -401,8 +401,9 @@ class AsyncTaskBase(object, metaclass=abc.ABCMeta):
             create_task(self.listen_tasks())
 
 
-async def send_task(task_name, args=None, **kwargs):
-    manager = current_app()
+async def send_task(task_name, args=None, manager=None, **kwargs):
+    if not manager:
+        manager = current_app()
 
     assert isinstance(manager, AsyncTaskDelayBase)
 
