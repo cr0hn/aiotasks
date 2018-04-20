@@ -42,15 +42,15 @@ aiotasks
 What's aiotasks
 ---------------
 
-aiotasks is an asynchronous & distributed task queue / jobs queue,
+aiotasks is an asynchronous & distributed task/jobs queue,
 implemented as coroutines and based on Python asyncio framework.
 
-Based on the Celery Task Queue ideas, but distributing coroutines and doing
-focus in performance, non-blocking & event-driven concepts.
+Based on the Celery Task Queue ideas, but distributing coroutines and focusing
+on performance, non-blocking, & event-driven concepts.
 
-aiotasks doesn't pulling and doesn't has active waiting for incoming jobs,
-instead use asyncio framework to suspend the execution until any new data
-are received by a new broker notification.
+aiotasks does not pull and does not actively wait for incoming jobs.
+Instead it uses asyncio framework to suspend the execution until any new data
+is received by a new broker notification.
 
 Documentation
 -------------
@@ -66,7 +66,7 @@ aiotasks is released under `BSD license <https://github
 Contributors
 ------------
 
-Contributors are welcome. You can find a list ot TODO tasks in the `TODO.md
+Contributors are welcome. You can find a list of TODO tasks in the `TODO.md
 <https://github.com/cr0hn/aiotasks/blob/master/TODO.md>`_ at the project file.
 
 All contributors will be added to the `CONTRIBUTORS.md
