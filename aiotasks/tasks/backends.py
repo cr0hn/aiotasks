@@ -1,104 +1,153 @@
-import os
-import atexit
+"""Backend implementations and manager factory for aiotasks."""
+
 import asyncio
+import atexit
+import contextlib
 import logging
-from typing import Union
+import os
+from typing import Any
 
-try:
-    import ujson as json
-except ImportError:
-    import json
+with contextlib.suppress(ImportError):
+    import uvloop
 
+    # Set uvloop as default event loop policy if available and not in debug mode
+    if not os.getenv("AIOTASK_DEBUG"):
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        logging.getLogger("aiotasks").debug("uvloop enabled")
 
 from ..core.exceptions import AioTasksValueError
+from .bases import AsyncTaskBase
+from .memory import AsyncTaskDelayMemory, AsyncTaskSubscribeMemory
 from .redis import AsyncTaskDelayRedis, AsyncTaskSubscribeRedis
-from .memory import AsyncTaskSubscribeMemory, AsyncTaskDelayMemory
-from .bases import AsyncTaskBase, AsyncTaskSubscribeBase, AsyncTaskDelayBase
 
 log = logging.getLogger("aiotasks")
 
 
-if not os.getenv("AIOTASK_DEBUG", False):  # pragma: no cover
-    try:
-        import uvloop
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBase):
+    """In-memory backend for development and testing.
 
-        log.debug("uvloop found. Using it as the event loop")
-    except ImportError:
-        pass
+    This backend stores tasks in memory and is useful for development,
+    testing, and single-process applications. Data is not persisted.
 
+    Attributes:
+        prefix: Prefix for task names and channels
+    """
 
-# -------------------------------------------------------------------------
-# Composed backends
-# -------------------------------------------------------------------------
-class MemoryBackend(AsyncTaskDelayMemory,
-                    AsyncTaskSubscribeMemory,
-                    AsyncTaskBase):
+    def __init__(
+        self,
+        dsn: str,
+        prefix: str = "aiotasks",
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the memory backend.
 
-    def __init__(self,
-                 dsn,
-                 loop,
-                 prefix: str = "aoitasks"):
+        Args:
+            dsn: Connection string (ignored for memory backend)
+            prefix: Prefix for all task names and channels
+            **kwargs: Additional arguments (loop is deprecated)
+        """
+        kwargs.pop("loop", None)  # Remove deprecated loop parameter
         self.prefix = prefix
 
-        AsyncTaskSubscribeMemory.__init__(self, loop=loop, prefix=prefix)
-        AsyncTaskDelayMemory.__init__(self, loop=loop, prefix=prefix)
-        AsyncTaskBase.__init__(self, dsn=dsn, loop=loop)
+        AsyncTaskSubscribeMemory.__init__(self, prefix=prefix)
+        AsyncTaskDelayMemory.__init__(self, prefix=prefix)
+        AsyncTaskBase.__init__(self, dsn=dsn)
 
 
-class RedisBackend(AsyncTaskSubscribeRedis,
-                   AsyncTaskDelayRedis,
-                   AsyncTaskBase):
+class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
+    """Redis backend for distributed task processing.
 
-    def __init__(self,
-                 dsn: str,
-                 loop,
-                 prefix: str = "aiotasks"):
+    This backend uses Redis for task storage and pub/sub, enabling
+    distributed task processing across multiple workers.
 
-        AsyncTaskSubscribeRedis.__init__(self,
-                                         dsn=dsn,
-                                         prefix=prefix,
-                                         loop=loop)
-        AsyncTaskDelayRedis.__init__(self,
-                                     dsn=dsn,
-                                     prefix=prefix,
-                                     loop=loop)
-        AsyncTaskBase.__init__(self, dsn=dsn, loop=loop)
+    Attributes:
+        prefix: Prefix for all Redis keys and channels
+    """
 
-        # This line is necessary to close redis connections
+    def __init__(
+        self,
+        dsn: str,
+        prefix: str = "aiotasks",
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the Redis backend.
+
+        Args:
+            dsn: Redis connection string (e.g., "redis://localhost:6379/0")
+            prefix: Prefix for all Redis keys and channels
+            **kwargs: Additional arguments (loop is deprecated)
+        """
+        kwargs.pop("loop", None)  # Remove deprecated loop parameter
+
+        AsyncTaskSubscribeRedis.__init__(self, dsn=dsn, prefix=prefix)
+        AsyncTaskDelayRedis.__init__(self, dsn=dsn, prefix=prefix)
+        AsyncTaskBase.__init__(self, dsn=dsn)
+
+        # Register cleanup on exit
         atexit.register(self.stop)
 
 
-def build_manager(dsn: str = "memory://",
-                  prefix: str = "aiotasks",
-                  loop=None) -> Union[AsyncTaskBase,
-                                      AsyncTaskSubscribeBase,
-                                      AsyncTaskDelayBase]:
+def build_manager(
+    dsn: str = "memory://",
+    prefix: str = "aiotasks",
+    **kwargs: Any,
+) -> AsyncTaskBase:
+    """Build and configure a task manager backend.
 
-    loop = loop or asyncio.get_event_loop()
+    This is the main factory function for creating aiotasks managers.
+    It selects the appropriate backend based on the DSN scheme.
 
+    Args:
+        dsn: Data Source Name specifying the backend
+            - "memory://" for in-memory backend (development/testing)
+            - "redis://host:port/db" for Redis backend (production)
+            - "amqp://..." for RabbitMQ backend (future)
+            - "zmq://..." for ZeroMQ backend (future)
+        prefix: Prefix for all task names, keys, and channels
+        **kwargs: Additional backend-specific arguments
+
+    Returns:
+        Configured task manager instance
+
+    Raises:
+        AioTasksValueError: If the DSN scheme is not recognized
+
+    Examples:
+        >>> # Create memory backend for testing
+        >>> manager = build_manager("memory://")
+        >>>
+        >>> # Create Redis backend for production
+        >>> manager = build_manager("redis://localhost:6379/0")
+        >>>
+        >>> # Create with custom prefix
+        >>> manager = build_manager("redis://localhost:6379/0", prefix="myapp")
+    """
+    # Deprecated loop parameter handling
+    kwargs.pop("loop", None)
+
+    # Validate and normalize prefix
     if not prefix:
-        log.error("Empty task_prefix. Using 'aiotasks' as task_prefix")
+        log.warning("Empty prefix provided, using 'aiotasks'")
         prefix = "aiotasks"
-
-    # Fixing task_prefix type
     prefix = str(prefix)
 
-    if not os.getenv("AIOTASK_DEBUG", False):  # pragma: no cover
-        loop.set_debug(True)
-
+    # Select backend based on DSN scheme
     if dsn.startswith("memory"):
-        ret = MemoryBackend(dsn=dsn, prefix=prefix, loop=loop)
+        log.debug("Creating memory backend")
+        manager = MemoryBackend(dsn=dsn, prefix=prefix)
     elif dsn.startswith("redis"):
-        ret = RedisBackend(dsn=dsn, prefix=prefix, loop=loop)
+        log.debug("Creating Redis backend with DSN: %s", dsn)
+        manager = RedisBackend(dsn=dsn, prefix=prefix)
     else:
-        raise AioTasksValueError("'{}' is a not valid DSN value")
+        msg = f"Unsupported DSN scheme: {dsn}. Use 'memory://' or 'redis://'"
+        raise AioTasksValueError(msg)
 
-    # Store manager for global access
+    # Store manager globally for current_app() access
     import builtins
-    builtins.__aiotasks__ = ret
 
-    return ret
+    builtins.__aiotasks__ = manager  # type: ignore[attr-defined]
+
+    return manager
 
 
-__all__ = ("build_manager", )
+__all__ = ("build_manager", "MemoryBackend", "RedisBackend")
