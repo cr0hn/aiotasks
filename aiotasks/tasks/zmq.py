@@ -1,4 +1,9 @@
-"""ZeroMQ backend implementation using pyzmq."""
+"""ZeroMQ backend implementation using pyzmq.
+
+ZeroMQ Pattern Usage:
+- Tasks (.delay()): PUSH/PULL pattern - load balanced, only ONE worker gets each task
+- Subscriptions (.subscribe()): PUB/SUB pattern - ALL subscribers receive messages
+"""
 
 import asyncio
 import logging
@@ -24,13 +29,21 @@ class ZMQAsyncWaitContextManager(AsyncWaitContextManager):
     """ZeroMQ-specific context manager for task execution."""
 
     async def __await__(self) -> Any:
-        """Submit task to ZeroMQ socket."""
+        """Submit task to ZeroMQ PUSH socket.
+
+        Uses PUSH/PULL pattern for load balancing.
+        Each task goes to ONE worker only (round-robin).
+        """
         message = self.build_delay_message()
         await self.poller.send(message)
 
 
 class AsyncTaskSubscribeZMQ(AsyncTaskSubscribeBase):
-    """ZeroMQ pub/sub implementation for task subscribers."""
+    """ZeroMQ pub/sub implementation for task subscribers.
+
+    Uses PUB/SUB pattern where ALL subscribers receive each message.
+    Each subscriber connects to the publisher and receives a copy.
+    """
 
     def __init__(
         self,
@@ -53,20 +66,24 @@ class AsyncTaskSubscribeZMQ(AsyncTaskSubscribeBase):
         # Create ZeroMQ context and sockets
         self._zmq_context = zmq.asyncio.Context()
 
-        # Publisher socket (PUB)
+        # Publisher socket (PUB) - ONE publisher
         self._pub_socket: zmq.asyncio.Socket = self._zmq_context.socket(zmq.PUB)
         pub_endpoint = f"tcp://{config.host}:{config.port}"
         self._pub_socket.bind(pub_endpoint)
-        log.debug("ZMQ publisher bound to: %s", pub_endpoint)
+        log.debug("ZMQ PUB socket bound to: %s", pub_endpoint)
 
-        # Subscriber socket (SUB)
+        # Subscriber socket (SUB) - connects to publisher
+        # Each subscriber process will have its own SUB socket
         self._sub_socket: zmq.asyncio.Socket = self._zmq_context.socket(zmq.SUB)
-        sub_endpoint = f"tcp://{config.host}:{config.port + 1}"
-        self._sub_socket.bind(sub_endpoint)
-        log.debug("ZMQ subscriber bound to: %s", sub_endpoint)
+        # SUB connects to PUB (not bind)
+        self._sub_socket.connect(pub_endpoint)
+        log.debug("ZMQ SUB socket connected to: %s", pub_endpoint)
 
     async def publish(self, topic: str, info: Any) -> None:
-        """Publish a message to a topic.
+        """Publish a message to a topic using PUB/SUB pattern.
+
+        All subscribers with matching topic filter will receive this message.
+        This is true broadcast - every subscriber gets a copy.
 
         Args:
             topic: The topic to publish to
@@ -79,11 +96,12 @@ class AsyncTaskSubscribeZMQ(AsyncTaskSubscribeBase):
         message_body = self.build_subscribe_message(topic=topic, data=info)
 
         # ZMQ pub/sub uses multipart messages: [topic, data]
+        # ALL subscribers with matching filter receive this
         await self._pub_socket.send_multipart([
             full_topic.encode(),
             message_body,
         ])
-        log.debug("Published message to topic: %s", topic)
+        log.debug("Published to all subscribers on topic: %s", topic)
 
     async def has_pending_topics(self) -> bool:
         """Check if there are pending topic handlers running.
@@ -96,13 +114,17 @@ class AsyncTaskSubscribeZMQ(AsyncTaskSubscribeBase):
     async def register_topics(self) -> zmq.asyncio.Socket:
         """Register subscriptions for all topics.
 
+        Subscribes to topic pattern. Each subscriber independently
+        receives all matching messages (true pub/sub).
+
         Returns:
             Socket object for message listening
         """
         # Subscribe to all topics with our prefix
+        # Each subscriber that does this will receive ALL matching messages
         subscription_filter = f"{self.prefix}:".encode()
         self._sub_socket.setsockopt(zmq.SUBSCRIBE, subscription_filter)
-        log.debug("Subscribed to pattern: %s*", self.prefix)
+        log.debug("Subscribed to pattern: %s* (will receive all matching messages)", self.prefix)
         return self._sub_socket
 
     async def wait_for_message(self, _channel: zmq.asyncio.Socket) -> bool:
@@ -142,7 +164,11 @@ class AsyncTaskSubscribeZMQ(AsyncTaskSubscribeBase):
 
 
 class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
-    """ZeroMQ implementation for delayed task execution."""
+    """ZeroMQ implementation for delayed task execution.
+
+    Uses PUSH/PULL pattern for load-balanced task distribution.
+    Each task goes to exactly ONE worker (round-robin by ZeroMQ).
+    """
 
     def __init__(
         self,
@@ -151,7 +177,7 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
         concurrency: int = 5,
         **kwargs: Any,
     ) -> None:
-        """Initialize ZeroMQ delay backend.
+        """Initialize ZeroMQ delay backend with PUSH/PULL pattern.
 
         Args:
             dsn: ZeroMQ connection string
@@ -167,26 +193,31 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
         # Create ZeroMQ context and sockets
         self._zmq_context = zmq.asyncio.Context()
 
-        # PUSH socket for sending tasks
+        # PUSH socket for sending tasks (ventilator pattern)
+        # This BINDS - clients will connect to push tasks
         self._push_socket: zmq.asyncio.Socket = self._zmq_context.socket(zmq.PUSH)
         push_endpoint = f"tcp://{config.host}:{config.port}"
         self._push_socket.bind(push_endpoint)
-        log.debug("ZMQ pusher bound to: %s", push_endpoint)
+        log.debug("ZMQ PUSH socket bound to: %s (for task submission)", push_endpoint)
 
-        # PULL socket for receiving tasks
+        # PULL socket for receiving tasks (worker pattern)
+        # This CONNECTS to where tasks are pushed
+        # Multiple workers can connect - ZeroMQ distributes tasks round-robin
         self._pull_socket: zmq.asyncio.Socket = self._zmq_context.socket(zmq.PULL)
-        pull_endpoint = f"tcp://{config.host}:{config.port + 1}"
-        self._pull_socket.bind(pull_endpoint)
-        log.debug("ZMQ puller bound to: %s", pull_endpoint)
+        # Workers connect to the same push endpoint
+        self._pull_socket.connect(push_endpoint)
+        log.debug("ZMQ PULL socket connected to: %s (will receive tasks round-robin)", push_endpoint)
 
     async def has_pending_tasks(self) -> bool:
         """Check if there are pending tasks.
 
         Returns:
             True if there are running tasks, False otherwise
+
+        Note:
+            ZMQ PUSH/PULL doesn't expose queue depth, so we only
+            check running tasks. Messages in flight are unknown.
         """
-        # ZMQ doesn't provide easy queue length access
-        # We only check running tasks
         return bool(self.task_running_tasks)
 
     def stop_delayers(self) -> None:
@@ -204,7 +235,7 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
         """Get the ZMQ socket for task submission.
 
         Returns:
-            ZMQ PUSH socket
+            ZMQ PUSH socket (tasks are load-balanced to PULL workers)
         """
         return self._push_socket
 
@@ -227,7 +258,10 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
         return self._pending_tasks_generator()
 
     async def _pending_tasks_generator(self) -> AsyncGenerator[tuple[str, bytes], None]:
-        """Generator that yields pending tasks from ZeroMQ.
+        """Generator that yields pending tasks from ZeroMQ PULL socket.
+
+        Uses PULL pattern - each task is received by exactly ONE worker.
+        ZeroMQ handles round-robin distribution automatically.
 
         Yields:
             Tuple of (queue_name, task_data)
@@ -235,6 +269,7 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
         while True:
             try:
                 # Receive with timeout to allow for cancellation
+                # PULL ensures only THIS worker gets each message (no duplicates)
                 message = await asyncio.wait_for(
                     self._pull_socket.recv(),
                     timeout=1.0,
