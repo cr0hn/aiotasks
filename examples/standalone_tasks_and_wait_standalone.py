@@ -1,8 +1,7 @@
-import random
 import asyncio
+import random
 
 from aiotasks import build_manager
-
 
 manager = build_manager("redis://")
 
@@ -10,11 +9,11 @@ manager = build_manager("redis://")
 @manager.task()
 async def task_01(num):
     wait_time = random.randint(0, 4)
-    
-    print("Task 01 starting: {}".format(num))
+
+    print(f"Task 01 starting: {num}")
     await asyncio.sleep(wait_time, loop=manager.loop)
     print("Task 01 stopping")
-    
+
     return wait_time
 
 

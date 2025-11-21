@@ -7,9 +7,8 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 with contextlib.suppress(ImportError):
-    import umsgpack as msgpack  # noqa: F401
+    pass
 
-import msgpack  # type: ignore[import-not-found]
 from redis import asyncio as aioredis
 from redis.asyncio.client import PubSub, Redis
 
@@ -160,6 +159,8 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
         dsn: str = "redis://127.0.0.1:6379/0",
         prefix: str = "aiotasks",
         concurrency: int = 5,
+        max_retries: int = 3,
+        task_ttl: int = 3600,
         **kwargs: Any,
     ) -> None:
         """Initialize Redis delay backend.
@@ -168,12 +169,19 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
             dsn: Redis connection string
             prefix: Prefix for all Redis keys
             concurrency: Maximum number of concurrent tasks
+            max_retries: Maximum number of retry attempts for failed tasks
+            task_ttl: Time-to-live for tasks in seconds
             **kwargs: Additional arguments (loop is deprecated and ignored)
         """
         # Remove deprecated loop argument if present
         kwargs.pop("loop", None)
 
-        super().__init__(prefix=prefix, concurrency=concurrency)
+        super().__init__(
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
 
         config: DSNConfig = parse_dsn(dsn, default_port=6379, default_db=0)
 
@@ -257,5 +265,68 @@ class AsyncTaskDelayRedis(AsyncTaskDelayBase):
                 # Yield control back to allow cancellation
                 await asyncio.sleep(0.01)
 
+    async def _task_ack(self, task_id: str) -> None:
+        """Acknowledge successful task completion in Redis.
 
-__all__ = ("AsyncTaskSubscribeRedis", "AsyncTaskDelayRedis")
+        Stores the task ID in a Redis set with TTL for tracking.
+
+        Args:
+            task_id: Unique identifier for the task.
+        """
+        await super()._task_ack(task_id)
+
+        # Store ACK in Redis set with TTL
+        ack_key = f"{self.task_prefix}:ack:{task_id}"
+        await self._redis_poller.setex(ack_key, self.task_ttl, "1")
+
+        # Also remove from processing set if exists
+        processing_key = f"{self.task_prefix}:processing:{task_id}"
+        await self._redis_poller.delete(processing_key)
+
+    async def _task_nack(self, task_id: str, error: Exception | None) -> None:
+        """Negative acknowledge - task failed in Redis.
+
+        Stores the task ID and error in Redis with TTL for tracking.
+
+        Args:
+            task_id: Unique identifier for the task.
+            error: The exception that caused the failure.
+        """
+        await super()._task_nack(task_id, error)
+
+        # Store NACK in Redis hash with TTL
+        nack_key = f"{self.task_prefix}:nack:{task_id}"
+        error_msg = str(error) if error else "Unknown error"
+        await self._redis_poller.setex(nack_key, self.task_ttl, error_msg)
+
+        # Also remove from processing set if exists
+        processing_key = f"{self.task_prefix}:processing:{task_id}"
+        await self._redis_poller.delete(processing_key)
+
+    async def cleanup_old_tasks(self) -> int:
+        """Clean up old task metadata from Redis.
+
+        Redis automatically handles TTL expiration, but this method can be used
+        to manually clean up task-related keys if needed.
+
+        Returns:
+            Number of keys cleaned up.
+        """
+        # Redis handles TTL automatically, but we can add manual cleanup logic here
+        # For example, clean up very old task queue entries
+        cleaned = 0
+
+        # Clean up processing keys older than TTL
+        pattern = f"{self.task_prefix}:processing:*"
+        async for key in self._redis_poller.scan_iter(match=pattern):
+            # Check if key exists and its TTL
+            ttl = await self._redis_poller.ttl(key)
+            if ttl == -1:  # No TTL set (shouldn't happen, but handle it)
+                await self._redis_poller.delete(key)
+                cleaned += 1
+
+        log.debug("Cleaned up %d old task keys", cleaned)
+        return cleaned
+
+
+__all__ = ("AsyncTaskDelayRedis", "AsyncTaskSubscribeRedis")

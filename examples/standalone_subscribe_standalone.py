@@ -2,32 +2,31 @@ import asyncio
 
 from aiotasks import build_manager
 
-
 manager = build_manager("redis://")
 
 
 @manager.subscribe("my_topic")
 async def task_01(topic, data):
-    print("Task subscribe task_01 - ({}): {}".format(topic, data))
-    
+    print(f"Task subscribe task_01 - ({topic}): {data}")
+
     await asyncio.sleep(2, loop=manager.loop)
 
 
 @manager.subscribe("other_topic")
 async def task_other(topic, data):
-    print("Task subscribe task_other - ({}): {}".format(topic, data))
-    
+    print(f"Task subscribe task_other - ({topic}): {data}")
+
     await asyncio.sleep(2, loop=manager.loop)
 
 
 async def generate_tasks():
     # Generates 5 tasks
     for x in range(5):
-        await manager.publish("my_topic", "heeeelloo:{}".format(x))
-    
+        await manager.publish("my_topic", f"heeeelloo:{x}")
+
     # Generates 5 tasks
     for x in range(5):
-        await manager.publish("other_topic", "XXXXX:{}".format(x))
+        await manager.publish("other_topic", f"XXXXX:{x}")
 
 if __name__ == '__main__':
     # Start aiotasks for waiting tasks

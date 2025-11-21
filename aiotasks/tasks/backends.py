@@ -52,6 +52,9 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
         self,
         dsn: str,
         prefix: str = "aiotasks",
+        concurrency: int = 5,
+        max_retries: int = 3,
+        task_ttl: int = 3600,
         **kwargs: Any,
     ) -> None:
         """Initialize the memory backend.
@@ -59,13 +62,22 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
         Args:
             dsn: Connection string (ignored for memory backend)
             prefix: Prefix for all task names and channels
+            concurrency: Maximum number of concurrent tasks
+            max_retries: Maximum number of retry attempts for failed tasks
+            task_ttl: Time-to-live for tasks in seconds
             **kwargs: Additional arguments (loop is deprecated)
         """
         kwargs.pop("loop", None)  # Remove deprecated loop parameter
         self.prefix = prefix
 
         AsyncTaskSubscribeMemory.__init__(self, prefix=prefix)
-        AsyncTaskDelayMemory.__init__(self, prefix=prefix)
+        AsyncTaskDelayMemory.__init__(
+            self,
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
         AsyncTaskBase.__init__(self, dsn=dsn)
 
 
@@ -83,6 +95,9 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
         self,
         dsn: str,
         prefix: str = "aiotasks",
+        concurrency: int = 5,
+        max_retries: int = 3,
+        task_ttl: int = 3600,
         **kwargs: Any,
     ) -> None:
         """Initialize the Redis backend.
@@ -90,93 +105,136 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
         Args:
             dsn: Redis connection string (e.g., "redis://localhost:6379/0")
             prefix: Prefix for all Redis keys and channels
+            concurrency: Maximum number of concurrent tasks
+            max_retries: Maximum number of retry attempts for failed tasks
+            task_ttl: Time-to-live for tasks in seconds
             **kwargs: Additional arguments (loop is deprecated)
         """
         kwargs.pop("loop", None)  # Remove deprecated loop parameter
 
         AsyncTaskSubscribeRedis.__init__(self, dsn=dsn, prefix=prefix)
-        AsyncTaskDelayRedis.__init__(self, dsn=dsn, prefix=prefix)
+        AsyncTaskDelayRedis.__init__(
+            self,
+            dsn=dsn,
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
         AsyncTaskBase.__init__(self, dsn=dsn)
 
         # Register cleanup on exit
         atexit.register(self.stop)
 
 
-class AMQPBackend(AsyncTaskSubscribeAMQP, AsyncTaskDelayAMQP, AsyncTaskBase):  # type: ignore[misc]
-    """AMQP/RabbitMQ backend for distributed task processing.
+if AMQP_AVAILABLE:
 
-    This backend uses RabbitMQ (or any AMQP broker) for task storage and pub/sub,
-    enabling highly reliable distributed task processing.
+    class AMQPBackend(AsyncTaskSubscribeAMQP, AsyncTaskDelayAMQP, AsyncTaskBase):  # type: ignore[misc]
+        """AMQP/RabbitMQ backend for distributed task processing.
 
-    Attributes:
-        prefix: Prefix for all exchanges and queues
-    """
+        This backend uses RabbitMQ (or any AMQP broker) for task storage and pub/sub,
+        enabling highly reliable distributed task processing.
 
-    def __init__(
-        self,
-        dsn: str,
-        prefix: str = "aiotasks",
-        **kwargs: Any,
-    ) -> None:
-        """Initialize the AMQP backend.
-
-        Args:
-            dsn: AMQP connection string (e.g., "amqp://guest:guest@localhost:5672/")
+        Attributes:
             prefix: Prefix for all exchanges and queues
-            **kwargs: Additional arguments (loop is deprecated)
         """
-        if not AMQP_AVAILABLE:
-            msg = "AMQP backend requires 'aio-pika'. Install with: pip install aiotasks[amqp]"
-            raise ImportError(msg)
 
-        kwargs.pop("loop", None)
+        def __init__(
+            self,
+            dsn: str,
+            prefix: str = "aiotasks",
+            concurrency: int = 5,
+            max_retries: int = 3,
+            task_ttl: int = 3600,
+            **kwargs: Any,
+        ) -> None:
+            """Initialize the AMQP backend.
 
-        AsyncTaskSubscribeAMQP.__init__(self, dsn=dsn, prefix=prefix)
-        AsyncTaskDelayAMQP.__init__(self, dsn=dsn, prefix=prefix)
-        AsyncTaskBase.__init__(self, dsn=dsn)
+            Args:
+                dsn: AMQP connection string (e.g., "amqp://guest:guest@localhost:5672/")
+                prefix: Prefix for all exchanges and queues
+                concurrency: Maximum number of concurrent tasks
+                max_retries: Maximum number of retry attempts for failed tasks
+                task_ttl: Time-to-live for tasks in seconds
+                **kwargs: Additional arguments (loop is deprecated)
+            """
+            if not AMQP_AVAILABLE:
+                msg = "AMQP backend requires 'aio-pika'. Install with: pip install aiotasks[amqp]"
+                raise ImportError(msg)
 
-        atexit.register(self.stop)
+            kwargs.pop("loop", None)
+
+            AsyncTaskSubscribeAMQP.__init__(self, dsn=dsn, prefix=prefix)
+            AsyncTaskDelayAMQP.__init__(
+                self,
+                dsn=dsn,
+                prefix=prefix,
+                concurrency=concurrency,
+                max_retries=max_retries,
+                task_ttl=task_ttl,
+            )
+            AsyncTaskBase.__init__(self, dsn=dsn)
+
+            atexit.register(self.stop)
 
 
-class ZMQBackend(AsyncTaskSubscribeZMQ, AsyncTaskDelayZMQ, AsyncTaskBase):  # type: ignore[misc]
-    """ZeroMQ backend for high-performance task processing.
+if ZMQ_AVAILABLE:
 
-    This backend uses ZeroMQ for task distribution, providing extremely
-    high throughput and low latency.
+    class ZMQBackend(AsyncTaskSubscribeZMQ, AsyncTaskDelayZMQ, AsyncTaskBase):  # type: ignore[misc]
+        """ZeroMQ backend for high-performance task processing.
 
-    Attributes:
-        prefix: Prefix for all topics and queues
-    """
+        This backend uses ZeroMQ for task distribution, providing extremely
+        high throughput and low latency.
 
-    def __init__(
-        self,
-        dsn: str,
-        prefix: str = "aiotasks",
-        **kwargs: Any,
-    ) -> None:
-        """Initialize the ZeroMQ backend.
-
-        Args:
-            dsn: ZeroMQ connection string (e.g., "zmq://localhost:5555")
+        Attributes:
             prefix: Prefix for all topics and queues
-            **kwargs: Additional arguments (loop is deprecated)
         """
-        if not ZMQ_AVAILABLE:
-            msg = "ZMQ backend requires 'pyzmq'. Install with: pip install aiotasks[zeromq]"
-            raise ImportError(msg)
 
-        kwargs.pop("loop", None)
+        def __init__(
+            self,
+            dsn: str,
+            prefix: str = "aiotasks",
+            concurrency: int = 5,
+            max_retries: int = 3,
+            task_ttl: int = 3600,
+            **kwargs: Any,
+        ) -> None:
+            """Initialize the ZeroMQ backend.
 
-        AsyncTaskSubscribeZMQ.__init__(self, dsn=dsn, prefix=prefix)
-        AsyncTaskDelayZMQ.__init__(self, dsn=dsn, prefix=prefix)
-        AsyncTaskBase.__init__(self, dsn=dsn)
+            Args:
+                dsn: ZeroMQ connection string (e.g., "zmq://localhost:5555")
+                prefix: Prefix for all topics and queues
+                concurrency: Maximum number of concurrent tasks
+                max_retries: Maximum number of retry attempts for failed tasks
+                task_ttl: Time-to-live for tasks in seconds
+                **kwargs: Additional arguments (loop is deprecated)
+            """
+            if not ZMQ_AVAILABLE:
+                msg = "ZMQ backend requires 'pyzmq'. Install with: pip install aiotasks[zeromq]"
+                raise ImportError(msg)
 
-        atexit.register(self.stop)
+            kwargs.pop("loop", None)
+
+            AsyncTaskSubscribeZMQ.__init__(self, dsn=dsn, prefix=prefix)
+            AsyncTaskDelayZMQ.__init__(
+                self,
+                dsn=dsn,
+                prefix=prefix,
+                concurrency=concurrency,
+                max_retries=max_retries,
+                task_ttl=task_ttl,
+            )
+            AsyncTaskBase.__init__(self, dsn=dsn)
+
+            atexit.register(self.stop)
 
 
 def build_manager(
     dsn: str = "memory://",
     prefix: str = "aiotasks",
+    concurrency: int = 5,
+    max_retries: int = 3,
+    task_ttl: int = 3600,
     **kwargs: Any,
 ) -> AsyncTaskBase:
     """Build and configure a task manager backend.
@@ -191,6 +249,9 @@ def build_manager(
             - "amqp://user:pass@host:port/" for RabbitMQ backend
             - "zmq://host:port" for ZeroMQ backend
         prefix: Prefix for all task names, keys, and channels
+        concurrency: Maximum number of concurrent tasks (default: 5)
+        max_retries: Maximum number of retry attempts for failed tasks (default: 3)
+        task_ttl: Time-to-live for tasks in seconds (default: 3600)
         **kwargs: Additional backend-specific arguments
 
     Returns:
@@ -213,8 +274,13 @@ def build_manager(
         >>> # Create ZeroMQ backend for high performance
         >>> manager = build_manager("zmq://localhost:5555")
         >>>
-        >>> # Create with custom prefix
-        >>> manager = build_manager("redis://localhost:6379/0", prefix="myapp")
+        >>> # Create with custom prefix and retry settings
+        >>> manager = build_manager(
+        ...     "redis://localhost:6379/0",
+        ...     prefix="myapp",
+        ...     max_retries=5,
+        ...     task_ttl=7200
+        ... )
     """
     # Deprecated loop parameter handling
     kwargs.pop("loop", None)
@@ -228,16 +294,40 @@ def build_manager(
     # Select backend based on DSN scheme
     if dsn.startswith("memory"):
         log.debug("Creating memory backend")
-        manager = MemoryBackend(dsn=dsn, prefix=prefix)
+        manager = MemoryBackend(
+            dsn=dsn,
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
     elif dsn.startswith("redis"):
         log.debug("Creating Redis backend with DSN: %s", dsn)
-        manager = RedisBackend(dsn=dsn, prefix=prefix)
+        manager = RedisBackend(
+            dsn=dsn,
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
     elif dsn.startswith("amqp"):
         log.debug("Creating AMQP backend with DSN: %s", dsn)
-        manager = AMQPBackend(dsn=dsn, prefix=prefix)
+        manager = AMQPBackend(
+            dsn=dsn,
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
     elif dsn.startswith("zmq"):
         log.debug("Creating ZMQ backend with DSN: %s", dsn)
-        manager = ZMQBackend(dsn=dsn, prefix=prefix)
+        manager = ZMQBackend(
+            dsn=dsn,
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
     else:
         msg = (
             f"Unsupported DSN scheme: {dsn}. "
@@ -253,4 +343,10 @@ def build_manager(
     return manager
 
 
-__all__ = ("build_manager", "MemoryBackend", "RedisBackend", "AMQPBackend", "ZMQBackend")
+# Build __all__ dynamically based on available backends
+__all__ = ["MemoryBackend", "RedisBackend", "build_manager"]
+if AMQP_AVAILABLE:
+    __all__.append("AMQPBackend")
+if ZMQ_AVAILABLE:
+    __all__.append("ZMQBackend")
+__all__ = tuple(__all__)

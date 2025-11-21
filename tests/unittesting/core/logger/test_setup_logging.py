@@ -8,7 +8,7 @@ def test_setup_logging_runs_ok():
 
 
 def test_setup_logging_runs_null_as_name():
-    
+
     with pytest.raises(AssertionError):
         setup_logging(None)
 

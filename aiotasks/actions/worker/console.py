@@ -1,33 +1,31 @@
-import socket
-import logging
-import warnings
-import platform
 import datetime
-
-from typing import List, Dict
+import logging
+import platform
+import socket
+import warnings
 from threading import current_thread
 
 from aiotasks import get_log_level
 
-from .model import *
-from .api import find_manager
 from ...core.exceptions import AioTasksTypeError
-from ..helpers import check_input_config, run_with_exceptions_and_logs
+from ..helpers import check_input_config
+from .api import find_manager
+from .model import *
 
 log = logging.getLogger('aiotasks')
 
 
 def make_summary(config: AioTasksDefaultModel,
-                 tasks_available: List,
+                 tasks_available: list,
                  subscribers: dict) -> str:
     now = datetime.datetime.now()
 
     display_subscriptions = []
     for topic, clients in subscribers.items():
-        display_subscriptions.append("'{}'".format(topic))
+        display_subscriptions.append(f"'{topic}'")
 
         for client in clients:
-            display_subscriptions.append("   > {}".format(client.__name__))
+            display_subscriptions.append(f"   > {client.__name__}")
 
     return """
  \033[1;37;40m--------------

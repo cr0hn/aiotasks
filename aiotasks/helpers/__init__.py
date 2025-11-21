@@ -82,4 +82,4 @@ def parse_dsn(
     )
 
 
-__all__ = ("parse_dsn", "DSNConfig", "BANNER")
+__all__ = ("BANNER", "DSNConfig", "parse_dsn")

@@ -13,7 +13,7 @@ from typing import Any
 try:
     import umsgpack as msgpack
 except ImportError:  # pragma: no cover
-    import msgpack
+    pass
 
 import zmq
 import zmq.asyncio
@@ -97,10 +97,12 @@ class AsyncTaskSubscribeZMQ(AsyncTaskSubscribeBase):
 
         # ZMQ pub/sub uses multipart messages: [topic, data]
         # ALL subscribers with matching filter receive this
-        await self._pub_socket.send_multipart([
-            full_topic.encode(),
-            message_body,
-        ])
+        await self._pub_socket.send_multipart(
+            [
+                full_topic.encode(),
+                message_body,
+            ]
+        )
         log.debug("Published to all subscribers on topic: %s", topic)
 
     async def has_pending_topics(self) -> bool:
@@ -175,6 +177,8 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
         dsn: str = "zmq://127.0.0.1:5556",
         prefix: str = "aiotasks",
         concurrency: int = 5,
+        max_retries: int = 3,
+        task_ttl: int = 3600,
         **kwargs: Any,
     ) -> None:
         """Initialize ZeroMQ delay backend with PUSH/PULL pattern.
@@ -183,10 +187,17 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
             dsn: ZeroMQ connection string
             prefix: Prefix for all queues
             concurrency: Maximum number of concurrent tasks
+            max_retries: Maximum number of retry attempts for failed tasks
+            task_ttl: Time-to-live for tasks in seconds
             **kwargs: Additional arguments (loop is deprecated and ignored)
         """
         kwargs.pop("loop", None)
-        super().__init__(prefix=prefix, concurrency=concurrency)
+        super().__init__(
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
 
         config: DSNConfig = parse_dsn(dsn, default_port=5556)
 
@@ -206,7 +217,9 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
         self._pull_socket: zmq.asyncio.Socket = self._zmq_context.socket(zmq.PULL)
         # Workers connect to the same push endpoint
         self._pull_socket.connect(push_endpoint)
-        log.debug("ZMQ PULL socket connected to: %s (will receive tasks round-robin)", push_endpoint)
+        log.debug(
+            "ZMQ PULL socket connected to: %s (will receive tasks round-robin)", push_endpoint
+        )
 
     async def has_pending_tasks(self) -> bool:
         """Check if there are pending tasks.
@@ -279,5 +292,44 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
                 # No message, yield control
                 await asyncio.sleep(0.01)
 
+    async def _task_ack(self, task_id: str) -> None:
+        """Acknowledge successful task completion for ZeroMQ.
 
-__all__ = ("AsyncTaskSubscribeZMQ", "AsyncTaskDelayZMQ")
+        ZeroMQ doesn't have native ACK, so this just logs.
+
+        Args:
+            task_id: Unique identifier for the task.
+        """
+        await super()._task_ack(task_id)
+        # ZeroMQ doesn't have native ACK - messages are fire-and-forget
+        # We just log for now
+        log.debug("ZMQ ACK (logged only): Task %s", task_id)
+
+    async def _task_nack(self, task_id: str, error: Exception | None) -> None:
+        """Negative acknowledge - task failed for ZeroMQ.
+
+        ZeroMQ doesn't have native NACK, so this just logs.
+
+        Args:
+            task_id: Unique identifier for the task.
+            error: The exception that caused the failure.
+        """
+        await super()._task_nack(task_id, error)
+        # ZeroMQ doesn't have native NACK - messages are fire-and-forget
+        # In a production system, you might want to publish failures to a DLQ
+        log.debug("ZMQ NACK (logged only): Task %s - Error: %s", task_id, error)
+
+    async def cleanup_old_tasks(self) -> int:
+        """Clean up old task metadata.
+
+        ZeroMQ is connectionless and doesn't accumulate metadata.
+
+        Returns:
+            Always returns 0 for ZeroMQ.
+        """
+        # ZeroMQ doesn't accumulate state - nothing to clean
+        log.debug("ZMQ cleanup: No persistent state to clean")
+        return 0
+
+
+__all__ = ("AsyncTaskDelayZMQ", "AsyncTaskSubscribeZMQ")

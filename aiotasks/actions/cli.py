@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-import click
 import logging
+
+import click
 
 from aiotasks import global_options
 
 from .worker.console import launch_aiotasks_worker_in_console
-
 
 log = logging.getLogger('aiotasks')
 

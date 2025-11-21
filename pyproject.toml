@@ -11,7 +11,7 @@ authors = [
 ]
 readme = "README.rst"
 license = { text = "BSD-3-Clause" }
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 keywords = ["asyncio", "celery", "tasks", "queue", "distributed", "redis", "rabbitmq", "zeromq"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -35,6 +35,7 @@ dependencies = [
     "colorlog>=6.8.0",
     "pydantic>=2.5.0",
     "msgpack>=1.0.7",
+    "tenacity>=8.2.3",
 ]
 
 [project.optional-dependencies]

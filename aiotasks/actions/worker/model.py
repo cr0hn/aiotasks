@@ -1,11 +1,15 @@
-from aiotasks import SharedConfig, String, Integer
+"""Worker model using pydantic."""
+
+from aiotasks.core.model import SharedConfig
 
 
 class AioTasksDefaultModel(SharedConfig):
-    application = String()
-    log_level = String()
-    config_file = String()
-    concurrency = Integer(default=4)
+    """Default model for aiotasks worker."""
+
+    application: str = ""
+    log_level: str = "INFO"
+    config_file: str = ""
+    concurrency: int = 4
 
 
-__all__ = ("AioTasksDefaultModel", )
+__all__ = ("AioTasksDefaultModel",)

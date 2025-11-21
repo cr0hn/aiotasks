@@ -17,4 +17,4 @@ class AioTasksTimeout(TimeoutError):
     """Raised when a task execution exceeds the timeout limit."""
 
 
-__all__ = ("AioTasksError", "AioTasksValueError", "AioTasksTypeError", "AioTasksTimeout")
+__all__ = ("AioTasksError", "AioTasksTimeout", "AioTasksTypeError", "AioTasksValueError")

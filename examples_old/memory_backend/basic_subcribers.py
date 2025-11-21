@@ -1,5 +1,6 @@
-import uvloop
 import asyncio
+
+import uvloop
 
 from aiotasks import build_manager
 
@@ -13,29 +14,29 @@ manager = build_manager(loop=loop)
 
 @manager.subscribe("hola")
 async def task_01(topic, data):
-    print("Task subscribe task_01 - ({}): {}".format(topic, data))
-    
+    print(f"Task subscribe task_01 - ({topic}): {data}")
+
     await asyncio.sleep(2, loop=loop)
-    
+
     print("Task 01 stopping")
 
 
 @manager.subscribe(["hola", "mundo"])
 async def task_02(topic, data):
-    print("Task subscribe task_02 - ({}): {}".format(topic, data))
-    
+    print(f"Task subscribe task_02 - ({topic}): {data}")
+
     await asyncio.sleep(2, loop=loop)
-    
+
     print("Task 01 stopping")
 
 
 async def main_async():
     manager.run()
-    
+
     for x in range(10000):
-        await manager.publish("mundo", "daaaata{}".format(x))
+        await manager.publish("mundo", f"daaaata{x}")
     await manager.wait(10)
-    
+
     manager.stop()
 
 

@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
+"""Core data models for aiotasks."""
 
-from booby import *
+from pydantic import BaseModel
 
 
-class SharedConfig(Model):
-    verbosity = Integer(default=0)
-    timeout = Integer(default=10)
-    debug = Boolean(default=False)
+class SharedConfig(BaseModel):
+    """Shared configuration for aiotasks."""
+
+    verbosity: int = 0
+    timeout: int = 10
+    debug: bool = False

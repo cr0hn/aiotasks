@@ -229,7 +229,7 @@ def get_aiotasks(request: Request) -> AsyncTaskBase:
 
 __all__ = (
     "AioTasksMiddleware",
-    "setup_aiotasks",
     "aiotasks_lifespan",
     "get_aiotasks",
+    "setup_aiotasks",
 )

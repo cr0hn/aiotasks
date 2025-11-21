@@ -77,4 +77,4 @@ def setup_file_logger(location_file_name: str) -> None:
     logger.addHandler(log_file)
 
 
-__all__ = ("setup_logging", "setup_file_logger", "CONSOLE_LEVEL")
+__all__ = ("CONSOLE_LEVEL", "setup_file_logger", "setup_logging")

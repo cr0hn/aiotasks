@@ -11,11 +11,8 @@ class MemoryAsyncWaitContextManager(AsyncWaitContextManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def __await__(self, *args, **kwargs):
-        return asyncio.ensure_future(
-            self.poller.put((self.list_name,
-                             self.build_delay_message())),
-            loop=self.loop).__await__()
+    def __await__(self):
+        return self.poller.put((self.list_name, self.build_delay_message())).__await__()
 
 
 class AsyncTaskSubscribeMemory(AsyncTaskSubscribeBase):
@@ -25,12 +22,9 @@ class AsyncTaskSubscribeMemory(AsyncTaskSubscribeBase):
     Each subscriber gets ALL published messages (broadcast pattern).
     """
 
-    def __init__(self,
-                 prefix: str = "aiotasks",
-                 loop=None):
-        super().__init__(loop=loop, prefix=prefix)
+    def __init__(self, prefix: str = "aiotasks", loop=None):
+        super().__init__(prefix=prefix)
 
-        self._loop_subscribers = loop or asyncio.get_event_loop()
         # Each subscriber gets its own queue for true pub/sub
         self._subscriber_queues: list[asyncio.Queue] = []
 
@@ -41,8 +35,8 @@ class AsyncTaskSubscribeMemory(AsyncTaskSubscribeBase):
         This is different from .delay() which uses ONE shared queue.
         """
         message = (
-            "{}:{}".format(self.prefix, topic),
-            self.build_subscribe_message(**dict(topic=topic, data=info))
+            f"{self.prefix}:{topic}",
+            self.build_subscribe_message(**dict(topic=topic, data=info)),
         )
 
         # Put message in ALL subscriber queues (broadcast)
@@ -60,7 +54,7 @@ class AsyncTaskSubscribeMemory(AsyncTaskSubscribeBase):
         Each subscriber independently receives all messages.
         """
         # Create a new queue for this subscriber
-        new_queue = asyncio.Queue(loop=self._loop_subscribers)
+        new_queue = asyncio.Queue()
         self._subscriber_queues.append(new_queue)
         return new_queue
 
@@ -87,16 +81,28 @@ class AsyncTaskDelayMemory(AsyncTaskDelayBase):
     processes each task (FIFO queue pattern, not pub/sub).
     """
 
-    def __init__(self,
-                 dsn=None,
-                 prefix: str = "aiotasks",
-                 loop=None,
-                 concurrency: int = 5):
-        super().__init__(loop=loop, prefix=prefix, concurrency=concurrency)
+    def __init__(
+        self,
+        dsn=None,
+        prefix: str = "aiotasks",
+        loop=None,
+        concurrency: int = 5,
+        max_retries: int = 3,
+        task_ttl: int = 3600,
+    ):
+        super().__init__(
+            prefix=prefix,
+            concurrency=concurrency,
+            max_retries=max_retries,
+            task_ttl=task_ttl,
+        )
 
         # Single shared queue - tasks are distributed round-robin to workers
         # Only ONE worker gets each task (correct queue behavior)
-        self._task_queue = asyncio.Queue(loop=self._loop_delay)
+        self._task_queue = asyncio.Queue()
+
+        # Track task metadata for cleanup
+        self._task_metadata: dict[str, dict] = {}
 
     async def has_pending_tasks(self):
         """Check if there are pending or running tasks."""
@@ -129,5 +135,68 @@ class AsyncTaskDelayMemory(AsyncTaskDelayBase):
         """Get the task queue for task submission."""
         return self._task_queue
 
+    async def _task_ack(self, task_id: str) -> None:
+        """Acknowledge successful task completion for Memory backend.
 
-__all__ = ("AsyncTaskSubscribeMemory", "AsyncTaskDelayMemory")
+        Args:
+            task_id: Unique identifier for the task.
+        """
+        await super()._task_ack(task_id)
+
+        # Store ACK in metadata
+        import time
+
+        self._task_metadata[task_id] = {
+            "status": "ack",
+            "timestamp": time.time(),
+        }
+        log.debug("Memory ACK: Task %s", task_id)
+
+    async def _task_nack(self, task_id: str, error: Exception | None) -> None:
+        """Negative acknowledge - task failed for Memory backend.
+
+        Args:
+            task_id: Unique identifier for the task.
+            error: The exception that caused the failure.
+        """
+        await super()._task_nack(task_id, error)
+
+        # Store NACK in metadata
+        import time
+
+        self._task_metadata[task_id] = {
+            "status": "nack",
+            "timestamp": time.time(),
+            "error": str(error) if error else "Unknown error",
+        }
+        log.debug("Memory NACK: Task %s - Error: %s", task_id, error)
+
+    async def cleanup_old_tasks(self) -> int:
+        """Clean up old task metadata from memory.
+
+        Removes metadata for tasks older than TTL.
+
+        Returns:
+            Number of tasks cleaned up.
+        """
+        import time
+
+        current_time = time.time()
+        cleaned = 0
+
+        # Remove tasks older than TTL
+        tasks_to_remove = [
+            task_id
+            for task_id, metadata in self._task_metadata.items()
+            if current_time - metadata.get("timestamp", 0) > self.task_ttl
+        ]
+
+        for task_id in tasks_to_remove:
+            del self._task_metadata[task_id]
+            cleaned += 1
+
+        log.debug("Cleaned up %d old task metadata entries", cleaned)
+        return cleaned
+
+
+__all__ = ("AsyncTaskDelayMemory", "AsyncTaskSubscribeMemory")

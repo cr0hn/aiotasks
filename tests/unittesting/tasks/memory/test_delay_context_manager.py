@@ -1,7 +1,8 @@
-import pytest
 import asyncio
 
-from aiotasks import build_manager, AioTasksTimeout
+import pytest
+
+from aiotasks import AioTasksTimeout, build_manager
 
 
 def test_memory_wait_oks(event_loop):

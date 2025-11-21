@@ -1,7 +1,8 @@
-import re
-import os
-import click
 import codecs
+import os
+import re
+
+import click
 
 #
 # Get version software version
@@ -38,7 +39,7 @@ global_options_list = (
 )
 
 
-class global_options(object):
+class global_options:
     def __init__(self, invoke_without_command=False):
         assert isinstance(invoke_without_command, bool)
 

@@ -1,8 +1,6 @@
 import pytest
 
-
-from aiotasks.actions import find_manager, \
-    AioTasksDefaultModel
+from aiotasks.actions import AioTasksDefaultModel, find_manager
 
 
 def test_run_default_aiotasks_runs_ok():

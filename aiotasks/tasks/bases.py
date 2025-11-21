@@ -5,20 +5,27 @@ management systems with publish/subscribe patterns and delayed task execution.
 """
 
 import abc
-import time
-import uuid
 import asyncio
 import logging
-
-from functools import partial
+import time
+import uuid
 from collections import defaultdict
-from collections.abc import Callable, Awaitable, Set as AbstractSet
+from collections.abc import Awaitable, Callable
+from functools import partial
 from typing import Any
 
 try:
     import umsgpack as msgpack
 except ImportError:  # pragma: no cover
     import msgpack
+
+from tenacity import (
+    RetryError,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 log = logging.getLogger("aiotasks")
 
@@ -77,8 +84,7 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
             # if function is a coro, add some new functions
             if asyncio.iscoroutinefunction(f):
                 if not topics:
-                    log.error("Empty topic fount in function '{}'. Skipping "
-                              "it.".format(f.__name__))
+                    log.error(f"Empty topic fount in function '{f.__name__}'. Skipping " "it.")
                 for topic in topics:
                     self.topics_subscribers[topic].add(f)
             return f
@@ -146,7 +152,7 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
         """
         tasks_done = self.running_tasks.pop(task_id)
 
-        log.debug("Task '{}' done".format(tasks_done))
+        log.debug(f"Task '{tasks_done}' done")
 
     async def listen_topics(self) -> None:
         """Listen for and process incoming topic messages.
@@ -171,36 +177,37 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
             raw = await self.get_next_message(channel)
 
             if hasattr(raw, "__iter__") and len(raw) != 2:
-                log.error("Invalid data from Redis subscriber. It must be a "
-                          "tuple with len 2")
+                log.error("Invalid data from Redis subscriber. It must be a " "tuple with len 2")
 
             ch, data = raw
 
-            if hasattr(ch, 'decode'):
+            if hasattr(ch, "decode"):
                 ch = ch.decode()
 
             # Get topic
             try:
                 prefix, topic = ch.split(":", maxsplit=1)
             except ValueError:
-                log.error("Invalid channel name: {}".format(ch))
+                log.error(f"Invalid channel name: {ch}")
                 continue
 
             # Check prefix
             if prefix != self.prefix:
-                log.error("Invalid prefix: {}".format(prefix))
+                log.error(f"Invalid prefix: {prefix}")
                 continue
 
             if hasattr(data, "encode"):
                 data = data.encode()
 
-            msg = msgpack.unpackb(data, encoding='utf-8')
+            msg = msgpack.unpackb(data, encoding="utf-8")
             data_topic = msg.get("topic", False)
             data_content = msg.get("data", False)
 
             if not data_topic or not data_content:
-                log.error("Invalid data topic / data content - topic: {} / "
-                          "data: {}".format(data_topic, data_content))
+                log.error(
+                    f"Invalid data topic / data content - topic: {data_topic} / "
+                    f"data: {data_content}"
+                )
                 continue
 
             for fn in self.topics_subscribers.get(topic, tuple()):
@@ -210,10 +217,7 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
 
                 task = asyncio.create_task(fn(data_topic, data_content))
 
-                log.debug("Launching task '{}' for topic '{}'".format(
-                    fn.__name__,
-                    data_topic
-                ))
+                log.debug(f"Launching task '{fn.__name__}' for topic '{data_topic}'")
 
                 task.add_done_callback(done_fn)
 
@@ -245,7 +249,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
     This class provides the foundation for implementing delayed/deferred task
     execution in asyncio applications. It manages task registration, queuing,
-    concurrency control, and execution.
+    concurrency control, retry logic, and execution.
 
     Attributes:
         task_prefix: Namespace prefix for tasks.
@@ -254,23 +258,35 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         task_concurrency: Maximum number of concurrent task executions.
         task_list_name: Fully qualified name for the task queue.
         task_concurrency_sem: Semaphore controlling concurrent task execution.
+        max_retries: Maximum number of retry attempts for failed tasks.
+        task_ttl: Time-to-live for tasks in seconds.
     """
 
     # -------------------------------------------------------------------------
     # Implemented methods
     # -------------------------------------------------------------------------
-    def __init__(self, prefix: str = "aiotasks", concurrency: int = 5) -> None:
+    def __init__(
+        self,
+        prefix: str = "aiotasks",
+        concurrency: int = 5,
+        max_retries: int = 3,
+        task_ttl: int = 3600,
+    ) -> None:
         """Initialize the delayed task manager.
 
         Args:
             prefix: Namespace prefix for tasks. Defaults to "aiotasks".
             concurrency: Maximum number of concurrent task executions. Defaults to 5.
+            max_retries: Maximum number of retry attempts for failed tasks. Defaults to 3.
+            task_ttl: Time-to-live for tasks in seconds. Defaults to 3600 (1 hour).
         """
         self.task_prefix = prefix
         self.task_running_tasks: dict[str, asyncio.Task] = dict()
         self.task_available_tasks: dict[str, Callable] = dict()
         self.task_concurrency = concurrency
         self.task_list_name = "{}:{}".format(self.task_prefix, "tasks")
+        self.max_retries = max_retries
+        self.task_ttl = task_ttl
 
         # Semaphore for task_concurrency
         self.task_concurrency_sem = asyncio.BoundedSemaphore(self.task_concurrency)
@@ -294,6 +310,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
             >>> # Later, queue the task for execution
             >>> await process_data.delay({"key": "value"})
         """
+
         def real_decorator(f: Callable) -> Callable:
             # Real call to funcion
             def new_f(*args: Any, **kwargs: Any) -> Any:
@@ -301,17 +318,14 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
             # if function is a coro, add some new functions
             if asyncio.iscoroutinefunction(f):
-
                 if name:
                     function_name = name
                 else:
                     function_name = f.__name__
 
-                new_f.delay = partial(self.context_class,
-                                      new_f,
-                                      self.task_list_name,
-                                      self.poller,
-                                      function_name)
+                new_f.delay = partial(
+                    self.context_class, new_f, self.task_list_name, self.poller, function_name
+                )
 
                 self.task_available_tasks[function_name] = f
 
@@ -331,14 +345,12 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
             a coroutine.
         """
         if not asyncio.iscoroutinefunction(function):
-            log.warning("Function '{}' is not a coroutine and can't be added "
-                        "as a task".format(function.__name__))
+            log.warning(
+                f"Function '{function.__name__}' is not a coroutine and can't be added " "as a task"
+            )
             return
 
-        function.delay = partial(self.context_class,
-                                 function,
-                                 self.task_list_name,
-                                 self.poller)
+        function.delay = partial(self.context_class, function, self.task_list_name, self.poller)
 
         if name:
             function_name = name
@@ -362,23 +374,70 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         if hasattr(self, "custom_task_done"):
             self.custom_task_done(running_task)
 
-    async def _function_runner(self, fn: Callable, *args: Any, **kwargs: Any) -> None:
-        """Execute a task function with the provided arguments.
+    async def _function_runner(self, fn: Callable, task_id: str, *args: Any, **kwargs: Any) -> None:
+        """Execute a task function with retry logic and error handling.
 
         Args:
             fn: The coroutine function to execute.
+            task_id: Unique identifier for the task (for logging).
             *args: Positional arguments to pass to the function.
             **kwargs: Keyword arguments to pass to the function.
 
-        Note:
-            In future releases, this method will handle errors, exceptions,
-            retries, and other execution policies.
+        This method implements:
+        - Exponential backoff retry logic
+        - ACK on success (task completed successfully)
+        - NACK on failure (task failed after all retries)
+        - Comprehensive error logging
         """
-        # ---------------------------------------------------------------------
-        # In next releases aiotasks will control errors and / or exceptions,
-        # retries etc
-        # ---------------------------------------------------------------------
-        await fn(*args, **kwargs)
+        # Create a retry decorator dynamically based on max_retries
+        retry_decorator = retry(
+            stop=stop_after_attempt(self.max_retries),
+            wait=wait_exponential(multiplier=1, min=4, max=60),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
+        )
+
+        # Wrap the function with retry logic
+        retrying_fn = retry_decorator(fn)
+
+        try:
+            await retrying_fn(*args, **kwargs)
+            # ACK - Task completed successfully
+            log.info(f"Task {task_id} completed successfully")
+            await self._task_ack(task_id)
+        except RetryError as e:
+            # NACK - Task failed after all retries
+            log.error(
+                f"Task {task_id} failed after {self.max_retries} attempts: {e.last_attempt.exception()}"
+            )
+            await self._task_nack(task_id, e.last_attempt.exception())
+        except Exception as e:
+            # NACK - Unexpected error
+            log.error(f"Task {task_id} failed with unexpected error: {e}")
+            await self._task_nack(task_id, e)
+
+    async def _task_ack(self, task_id: str) -> None:
+        """Acknowledge successful task completion.
+
+        This method can be overridden by backends that support native ACK.
+
+        Args:
+            task_id: Unique identifier for the task.
+        """
+        # Default implementation - override in backends that support native ACK
+        log.debug(f"ACK: Task {task_id}")
+
+    async def _task_nack(self, task_id: str, error: Exception | None) -> None:
+        """Negative acknowledge - task failed.
+
+        This method can be overridden by backends that support native NACK.
+
+        Args:
+            task_id: Unique identifier for the task.
+            error: The exception that caused the failure.
+        """
+        # Default implementation - override in backends that support native NACK
+        log.debug(f"NACK: Task {task_id} - Error: {error}")
 
     async def listen_tasks(self) -> None:
         """Listen for and execute queued tasks.
@@ -398,7 +457,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
             _, raw = raw_data
 
-            msg = msgpack.unpackb(raw, encoding='utf-8')
+            msg = msgpack.unpackb(raw, encoding="utf-8")
             args = msg.get("args")
             kwargs = msg.get("kwargs")
             task_id = msg.get("task_id")
@@ -410,25 +469,20 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
                 uuid.UUID(task_id, version=4)
             except ValueError:
-                log.error(
-                    "Task ID '{}' has not valid UUID4 format".format(task_id))
+                log.error(f"Task ID '{task_id}' has not valid UUID4 format")
                 continue
 
             try:
                 local_task = self.task_available_tasks[task_function]
             except KeyError:
-                log.warning("No local task with name '{}'".format(
-                    task_function))
+                log.warning(f"No local task with name '{task_function}'")
                 continue
 
             running_task_id = uuid.uuid4().hex
             done_fn = partial(self._make_tasks_done_delay, running_task_id)
 
             # Build stop task
-            task = asyncio.create_task(self._function_runner(
-                local_task,
-                *args,
-                **kwargs))
+            task = asyncio.create_task(self._function_runner(local_task, task_id, *args, **kwargs))
             task.add_done_callback(done_fn)
 
             self.task_running_tasks[running_task_id] = task
@@ -486,7 +540,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         pass
 
 
-class AsyncTaskBase(object, metaclass=abc.ABCMeta):
+class AsyncTaskBase(metaclass=abc.ABCMeta):
     """Abstract base class combining task subscription and delayed execution.
 
     This class provides a unified interface for managing both publish/subscribe
@@ -516,10 +570,9 @@ class AsyncTaskBase(object, metaclass=abc.ABCMeta):
         self._launcher_tasks: asyncio.Task | None = None
         self._launcher_topics: asyncio.Task | None = None
 
-    async def wait(self, *,
-                   timeout: float = 0,
-                   exit_on_finish: bool = False,
-                   wait_timeout: float = 1.0) -> None:
+    async def wait(
+        self, *, timeout: float = 0, exit_on_finish: bool = False, wait_timeout: float = 1.0
+    ) -> None:
         """Wait for tasks to complete or timeout to expire.
 
         This method blocks asynchronously, checking for pending tasks and topics
@@ -556,7 +609,6 @@ class AsyncTaskBase(object, metaclass=abc.ABCMeta):
                 if time.time() - _start_time > timeout and not _infinite:
                     return
             else:
-
                 # No tasks pending and marked ->
                 #   -> If marked as a exit on tasks finished
                 if exit_on_finish:
@@ -569,10 +621,9 @@ class AsyncTaskBase(object, metaclass=abc.ABCMeta):
             # Wait
             await asyncio.sleep(TIME_STEP)
 
-    def blocking_wait(self, *,
-                      timeout: float = 0,
-                      exit_on_finish: bool = False,
-                      wait_timeout: float = 1.0) -> None:
+    def blocking_wait(
+        self, *, timeout: float = 0, exit_on_finish: bool = False, wait_timeout: float = 1.0
+    ) -> None:
         """Blocking version of wait() that runs in the event loop.
 
         This is a synchronous wrapper around wait() that blocks the current
@@ -589,9 +640,9 @@ class AsyncTaskBase(object, metaclass=abc.ABCMeta):
             >>> # Blocking wait in synchronous code
             >>> manager.blocking_wait(timeout=30, exit_on_finish=True)
         """
-        self.loop.run_until_complete(self.wait(timeout=timeout,
-                                               exit_on_finish=exit_on_finish,
-                                               wait_timeout=wait_timeout))
+        self.loop.run_until_complete(
+            self.wait(timeout=timeout, exit_on_finish=exit_on_finish, wait_timeout=wait_timeout)
+        )
 
     def stop(self) -> None:
         """Stop all task execution and clean up resources.
@@ -624,10 +675,8 @@ class AsyncTaskBase(object, metaclass=abc.ABCMeta):
         async def close_subscribers_loop() -> None:
             self._loop_subscribers.stop()
 
-        self.loop.run_until_complete(asyncio.ensure_future(
-            close_delay_loop()))
-        self.loop.run_until_complete(asyncio.ensure_future(
-            close_subscribers_loop()))
+        self.loop.run_until_complete(asyncio.ensure_future(close_delay_loop()))
+        self.loop.run_until_complete(asyncio.ensure_future(close_subscribers_loop()))
 
     def run(self) -> None:
         """Start the task manager in blocking mode.
@@ -641,16 +690,16 @@ class AsyncTaskBase(object, metaclass=abc.ABCMeta):
             Call blocking_wait() after run() to keep the program running
             until tasks complete.
         """
-        self._launcher_topics = self._loop_subscribers.create_task(
-            self.listen_topics())
-        self._launcher_tasks = self._loop_delay.create_task(
-            self.listen_tasks())
+        self._launcher_topics = self._loop_subscribers.create_task(self.listen_topics())
+        self._launcher_tasks = self._loop_delay.create_task(self.listen_tasks())
 
 
-async def send_task(task_name: str,
-                    args: tuple | None = None,
-                    manager: AsyncTaskDelayBase | None = None,
-                    **kwargs: Any) -> Any:
+async def send_task(
+    task_name: str,
+    args: tuple | None = None,
+    manager: AsyncTaskDelayBase | None = None,
+    **kwargs: Any,
+) -> Any:
     """Send a task for delayed execution.
 
     This function queues a task for execution by name, optionally using
@@ -691,11 +740,9 @@ async def send_task(task_name: str,
         args = tuple()
 
     # Get task
-    task = partial(manager.context_class,
-                   fn_name,
-                   manager.task_list_name,
-                   manager.poller,
-                   task_name)
+    task = partial(
+        manager.context_class, fn_name, manager.task_list_name, manager.poller, task_name
+    )
 
     return await task(*args, **kwargs)
 
@@ -727,5 +774,10 @@ def current_app() -> AsyncTaskDelayBase:
     return manager
 
 
-__all__ = ("AsyncTaskSubscribeBase", "AsyncTaskDelayBase", "AsyncTaskBase",
-           "send_task", "current_app")
+__all__ = (
+    "AsyncTaskBase",
+    "AsyncTaskDelayBase",
+    "AsyncTaskSubscribeBase",
+    "current_app",
+    "send_task",
+)

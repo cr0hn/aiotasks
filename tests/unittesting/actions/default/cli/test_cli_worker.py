@@ -1,10 +1,8 @@
 import click
-
 from click.testing import CliRunner
 
-from aiotasks.actions.cli import worker
-
 import aiotasks.actions.cli
+from aiotasks.actions.cli import worker
 
 
 def _launch_aiotasks_worker_in_console(blah, **kwargs):

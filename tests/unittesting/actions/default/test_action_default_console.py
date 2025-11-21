@@ -1,6 +1,6 @@
-import pytest
 import logging
 
+import pytest
 from booby.errors import FieldError
 
 from aiotasks.actions import launch_aiotasks_worker_in_console
