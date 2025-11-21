@@ -20,6 +20,21 @@ from .bases import AsyncTaskBase
 from .memory import AsyncTaskDelayMemory, AsyncTaskSubscribeMemory
 from .redis import AsyncTaskDelayRedis, AsyncTaskSubscribeRedis
 
+# Optional backends - import only if dependencies are available
+try:
+    from .amqp import AsyncTaskDelayAMQP, AsyncTaskSubscribeAMQP
+
+    AMQP_AVAILABLE = True
+except ImportError:
+    AMQP_AVAILABLE = False
+
+try:
+    from .zmq import AsyncTaskDelayZMQ, AsyncTaskSubscribeZMQ
+
+    ZMQ_AVAILABLE = True
+except ImportError:
+    ZMQ_AVAILABLE = False
+
 log = logging.getLogger("aiotasks")
 
 
@@ -87,6 +102,78 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
         atexit.register(self.stop)
 
 
+class AMQPBackend(AsyncTaskSubscribeAMQP, AsyncTaskDelayAMQP, AsyncTaskBase):  # type: ignore[misc]
+    """AMQP/RabbitMQ backend for distributed task processing.
+
+    This backend uses RabbitMQ (or any AMQP broker) for task storage and pub/sub,
+    enabling highly reliable distributed task processing.
+
+    Attributes:
+        prefix: Prefix for all exchanges and queues
+    """
+
+    def __init__(
+        self,
+        dsn: str,
+        prefix: str = "aiotasks",
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the AMQP backend.
+
+        Args:
+            dsn: AMQP connection string (e.g., "amqp://guest:guest@localhost:5672/")
+            prefix: Prefix for all exchanges and queues
+            **kwargs: Additional arguments (loop is deprecated)
+        """
+        if not AMQP_AVAILABLE:
+            msg = "AMQP backend requires 'aio-pika'. Install with: pip install aiotasks[amqp]"
+            raise ImportError(msg)
+
+        kwargs.pop("loop", None)
+
+        AsyncTaskSubscribeAMQP.__init__(self, dsn=dsn, prefix=prefix)
+        AsyncTaskDelayAMQP.__init__(self, dsn=dsn, prefix=prefix)
+        AsyncTaskBase.__init__(self, dsn=dsn)
+
+        atexit.register(self.stop)
+
+
+class ZMQBackend(AsyncTaskSubscribeZMQ, AsyncTaskDelayZMQ, AsyncTaskBase):  # type: ignore[misc]
+    """ZeroMQ backend for high-performance task processing.
+
+    This backend uses ZeroMQ for task distribution, providing extremely
+    high throughput and low latency.
+
+    Attributes:
+        prefix: Prefix for all topics and queues
+    """
+
+    def __init__(
+        self,
+        dsn: str,
+        prefix: str = "aiotasks",
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the ZeroMQ backend.
+
+        Args:
+            dsn: ZeroMQ connection string (e.g., "zmq://localhost:5555")
+            prefix: Prefix for all topics and queues
+            **kwargs: Additional arguments (loop is deprecated)
+        """
+        if not ZMQ_AVAILABLE:
+            msg = "ZMQ backend requires 'pyzmq'. Install with: pip install aiotasks[zeromq]"
+            raise ImportError(msg)
+
+        kwargs.pop("loop", None)
+
+        AsyncTaskSubscribeZMQ.__init__(self, dsn=dsn, prefix=prefix)
+        AsyncTaskDelayZMQ.__init__(self, dsn=dsn, prefix=prefix)
+        AsyncTaskBase.__init__(self, dsn=dsn)
+
+        atexit.register(self.stop)
+
+
 def build_manager(
     dsn: str = "memory://",
     prefix: str = "aiotasks",
@@ -101,8 +188,8 @@ def build_manager(
         dsn: Data Source Name specifying the backend
             - "memory://" for in-memory backend (development/testing)
             - "redis://host:port/db" for Redis backend (production)
-            - "amqp://..." for RabbitMQ backend (future)
-            - "zmq://..." for ZeroMQ backend (future)
+            - "amqp://user:pass@host:port/" for RabbitMQ backend
+            - "zmq://host:port" for ZeroMQ backend
         prefix: Prefix for all task names, keys, and channels
         **kwargs: Additional backend-specific arguments
 
@@ -111,6 +198,7 @@ def build_manager(
 
     Raises:
         AioTasksValueError: If the DSN scheme is not recognized
+        ImportError: If required dependencies for backend are not installed
 
     Examples:
         >>> # Create memory backend for testing
@@ -118,6 +206,12 @@ def build_manager(
         >>>
         >>> # Create Redis backend for production
         >>> manager = build_manager("redis://localhost:6379/0")
+        >>>
+        >>> # Create AMQP backend with RabbitMQ
+        >>> manager = build_manager("amqp://guest:guest@localhost:5672/")
+        >>>
+        >>> # Create ZeroMQ backend for high performance
+        >>> manager = build_manager("zmq://localhost:5555")
         >>>
         >>> # Create with custom prefix
         >>> manager = build_manager("redis://localhost:6379/0", prefix="myapp")
@@ -138,8 +232,17 @@ def build_manager(
     elif dsn.startswith("redis"):
         log.debug("Creating Redis backend with DSN: %s", dsn)
         manager = RedisBackend(dsn=dsn, prefix=prefix)
+    elif dsn.startswith("amqp"):
+        log.debug("Creating AMQP backend with DSN: %s", dsn)
+        manager = AMQPBackend(dsn=dsn, prefix=prefix)
+    elif dsn.startswith("zmq"):
+        log.debug("Creating ZMQ backend with DSN: %s", dsn)
+        manager = ZMQBackend(dsn=dsn, prefix=prefix)
     else:
-        msg = f"Unsupported DSN scheme: {dsn}. Use 'memory://' or 'redis://'"
+        msg = (
+            f"Unsupported DSN scheme: {dsn}. "
+            "Supported: 'memory://', 'redis://', 'amqp://', 'zmq://'"
+        )
         raise AioTasksValueError(msg)
 
     # Store manager globally for current_app() access
@@ -150,4 +253,4 @@ def build_manager(
     return manager
 
 
-__all__ = ("build_manager", "MemoryBackend", "RedisBackend")
+__all__ = ("build_manager", "MemoryBackend", "RedisBackend", "AMQPBackend", "ZMQBackend")
