@@ -11,7 +11,7 @@ authors = [
 ]
 readme = "README.rst"
 license = { text = "BSD-3-Clause" }
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 keywords = ["asyncio", "celery", "tasks", "queue", "distributed", "redis", "rabbitmq", "zeromq"]
 classifiers = [
     "Development Status :: 4 - Beta",

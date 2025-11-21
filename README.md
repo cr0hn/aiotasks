@@ -54,7 +54,37 @@ pip install aiotasks[zeromq]     # ZeroMQ support
 pip install aiotasks[fastapi]    # FastAPI integration
 ```
 
-### Basic Usage
+### Basic Usage (Celery-style API - Recommended)
+
+```python
+import asyncio
+from aiotasks import AioTasks
+
+# Create app (just like Celery!)
+app = AioTasks("myapp", broker="redis://localhost:6379/0")
+
+# Define tasks
+@app.task
+async def send_email(to: str, subject: str, body: str):
+    await asyncio.sleep(1)  # Simulate email sending
+    print(f"Email sent to {to}")
+
+# Use tasks
+async def main():
+    app.run()  # Start worker
+
+    # Queue tasks for async execution
+    await send_email.delay("user@example.com", "Hello", "World")
+
+    # Wait for completion
+    await app.wait(timeout=10, exit_on_finish=True)
+    app.stop()
+
+asyncio.run(main())
+```
+
+<details>
+<summary>Alternative: Classic API (still supported)</summary>
 
 ```python
 import asyncio
@@ -66,22 +96,19 @@ manager = build_manager("redis://localhost:6379/0")
 # Define a task
 @manager.task()
 async def send_email(to: str, subject: str, body: str):
-    await asyncio.sleep(1)  # Simulate email sending
+    await asyncio.sleep(1)
     print(f"Email sent to {to}")
 
 # Use the task
 async def main():
     manager.run()
-
-    # Queue the task for async execution
     await send_email.delay("user@example.com", "Hello", "World")
-
-    # Wait for completion
     await manager.wait(timeout=10, exit_on_finish=True)
     manager.stop()
 
 asyncio.run(main())
 ```
+</details>
 
 ---
 
