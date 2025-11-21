@@ -4,7 +4,7 @@ import logging
 
 import click
 
-from aiotasks import global_options
+from aiotasks.core import global_options
 
 from .worker.console import launch_aiotasks_worker_in_console
 

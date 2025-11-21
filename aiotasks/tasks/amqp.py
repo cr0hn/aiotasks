@@ -307,7 +307,7 @@ class AsyncTaskDelayAMQP(AsyncTaskDelayBase):
                     # Do NOT use message.process() - we'll manually ACK/NACK
                     # Extract task_id to store message for later ACK/NACK
                     try:
-                        msg = msgpack.unpackb(message.body, encoding="utf-8")
+                        msg = msgpack.unpackb(message.body, raw=False)
                         task_id = msg.get("task_id")
                         if task_id:
                             # Store message for later ACK/NACK

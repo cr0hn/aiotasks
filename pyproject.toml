@@ -11,7 +11,7 @@ authors = [
 ]
 readme = "README.rst"
 license = { text = "BSD-3-Clause" }
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 keywords = ["asyncio", "celery", "tasks", "queue", "distributed", "redis", "rabbitmq", "zeromq"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -22,6 +22,7 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -89,7 +90,7 @@ Changelog = "https://github.com/cr0hn/aiotasks/blob/master/CHANGELOG.md"
 packages = ["aiotasks"]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py311"
 line-length = 100
 indent-width = 4
 
@@ -140,7 +141,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -216,7 +217,7 @@ exclude_lines = [
 ]
 
 [tool.pylint.main]
-py-version = "3.12"
+py-version = "3.11"
 jobs = 0
 suggestion-mode = true
 

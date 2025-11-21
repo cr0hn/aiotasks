@@ -199,7 +199,7 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
             if hasattr(data, "encode"):
                 data = data.encode()
 
-            msg = msgpack.unpackb(data, encoding="utf-8")
+            msg = msgpack.unpackb(data, raw=False)
             data_topic = msg.get("topic", False)
             data_content = msg.get("data", False)
 
@@ -457,7 +457,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
             _, raw = raw_data
 
-            msg = msgpack.unpackb(raw, encoding="utf-8")
+            msg = msgpack.unpackb(raw, raw=False)
             args = msg.get("args")
             kwargs = msg.get("kwargs")
             task_id = msg.get("task_id")

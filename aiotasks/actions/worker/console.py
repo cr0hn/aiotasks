@@ -5,9 +5,8 @@ import socket
 import warnings
 from threading import current_thread
 
-from aiotasks import get_log_level
-
 from ...core.exceptions import AioTasksTypeError
+from ...core.helpers import get_log_level
 from ..helpers import check_input_config
 from .api import find_manager
 from .model import *

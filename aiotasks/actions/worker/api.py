@@ -3,9 +3,8 @@ import os
 import sys
 from functools import partial
 
-from aiotasks import AsyncTaskBase
-
 from ...core.exceptions import AioTasksError
+from ...tasks.bases import AsyncTaskBase
 from .model import *
 
 here = os.getcwd()

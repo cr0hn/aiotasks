@@ -1,6 +1,7 @@
 import logging
 
-from aiotasks import AioTasksTypeError, SharedConfig
+from aiotasks.core.exceptions import AioTasksTypeError
+from aiotasks.core.model import SharedConfig
 
 log = logging.getLogger('aiotasks')
 
