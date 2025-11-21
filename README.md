@@ -1,60 +1,94 @@
-# 🚀 aiotasks
+# AioTasks
 
-**A modern, Celery-like task queue for Python 3.12+ using asyncio**
+<div align="center">
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![License: BSD-3](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](http://mypy-lang.org/)
+**🚀 Modern Async Task Queue for Python 3.11+**
+
+*A Celery-like task manager that distributes asyncio coroutines*
+
+[![PyPI version](https://badge.fury.io/py/aiotasks.svg)](https://pypi.org/project/aiotasks/)
+[![Python versions](https://img.shields.io/pypi/pyversions/aiotasks.svg)](https://pypi.org/project/aiotasks/)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](https://github.com/cr0hn/aiotasks/blob/main/LICENSE)
+[![CI/CD](https://github.com/cr0hn/aiotasks/workflows/CI%2FCD/badge.svg)](https://github.com/cr0hn/aiotasks/actions)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://aiotasks.readthedocs.io)
+
+[Features](#-features) •
+[Installation](#-installation) •
+[Quick Start](#-quick-start) •
+[CLI Reference](#-cli-reference) •
+[Migration Guide](#-migration-from-10x) •
+[Documentation](https://aiotasks.readthedocs.io)
+
+</div>
 
 ---
 
-## 🌟 What's New in v2.0
+## 📋 Table of Contents
 
-**aiotasks** has been completely modernized for Python 3.12+:
-
-- ✨ **Modern Python 3.12+** - Full type hints with PEP 604 syntax
-- 🔄 **New Backends** - Redis, RabbitMQ (AMQP), ZeroMQ support
-- ⚡ **Performance** - Built on `redis.asyncio` and `uvloop`
-- 🎯 **FastAPI Integration** - Seamless FastAPI integration module
-- 📦 **UV Package Manager** - Modern dependency management
-- 🔍 **Quality Tools** - Ruff, mypy, pylint, pre-commit hooks
-- 📚 **Comprehensive Docs** - Full type hints and examples
+- [What is AioTasks?](#-what-is-aiotasks)
+- [Features](#-features)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Examples](#-examples)
+- [CLI Reference](#-cli-reference)
+- [Backends](#-backends)
+- [Migration from 1.0.x](#-migration-from-10x)
+- [What's New in 2.0](#-whats-new-in-20)
+- [Why AioTasks?](#-why-aiotasks)
+- [License](#-license)
 
 ---
 
-## 📋 Features
+## 🎯 What is AioTasks?
 
-- **Async-First**: Built from the ground up with `asyncio`
-- **Multiple Backends**: Memory, Redis, RabbitMQ, ZeroMQ
-- **Celery-like API**: Familiar `@task` decorator and `.delay()` pattern
-- **Pub/Sub Support**: Topic-based message subscriptions
-- **Type Safe**: Complete type hints for excellent IDE support
-- **Production Ready**: Battle-tested patterns and error handling
-- **Fast**: Non-blocking, event-driven architecture
-- **Easy Integration**: Works seamlessly with FastAPI, aiohttp, and more
+AioTasks is a **modern, high-performance task queue** built on Python's asyncio. If you're familiar with Celery, you'll feel right at home - AioTasks provides a **nearly identical API** but is designed specifically for async/await workflows.
+
+**Perfect for:**
+- 🌐 Web applications (FastAPI, aiohttp, Django async)
+- 📧 Background task processing (emails, notifications, reports)
+- 🔄 Periodic tasks and scheduling
+- 📊 Data pipelines and ETL jobs
+- 🤖 Microservices communication
+
+---
+
+## ✨ Features
+
+- **🎭 Celery-Compatible CLI** - Same syntax, just `aiotasks` instead of `celery`
+- **⚡ Native AsyncIO** - Built from scratch for async/await
+- **🔄 Multiple Backends** - Memory, Redis, RabbitMQ (AMQP), ZeroMQ
+- **🔁 Smart Retry Logic** - Exponential backoff with tenacity
+- **📊 Task Acknowledgment** - Reliable ACK/NACK support
+- **⏱️ TTL Support** - Automatic task expiration
+- **🎯 Type Safe** - Complete type hints with modern Python
+- **🐍 Python 3.11+** - Pattern matching, StrEnum, PEP 604
+- **📝 Comprehensive Testing** - pytest suite with 40%+ coverage
+- **🔄 CI/CD Ready** - GitHub Actions workflows included
+- **📚 Multi-Language Docs** - English & Spanish
+
+---
+
+## 📦 Installation
+
+```bash
+# Basic installation
+pip install aiotasks
+
+# With Redis support (recommended for production)
+pip install aiotasks[redis]
+
+# With RabbitMQ/AMQP support
+pip install aiotasks[amqp]
+
+# All backends + performance optimizations
+pip install aiotasks[all]
+```
 
 ---
 
 ## 🚀 Quick Start
 
-### Installation
-
-```bash
-# Basic installation (Memory + Redis)
-pip install aiotasks
-
-# With all backends
-pip install aiotasks[all]
-
-# Individual backends
-pip install aiotasks[redis]      # Redis support
-pip install aiotasks[amqp]       # RabbitMQ support
-pip install aiotasks[zeromq]     # ZeroMQ support
-pip install aiotasks[fastapi]    # FastAPI integration
-```
-
-### Basic Usage (Celery-style API - Recommended)
+### 1. Define Your App (Celery-Style)
 
 ```python
 import asyncio
@@ -64,267 +98,247 @@ from aiotasks import AioTasks
 app = AioTasks("myapp", broker="redis://localhost:6379/0")
 
 # Define tasks
-@app.task
+@app.task()
 async def send_email(to: str, subject: str, body: str):
-    await asyncio.sleep(1)  # Simulate email sending
-    print(f"Email sent to {to}")
+    await asyncio.sleep(1)  # Simulate sending
+    print(f"📧 Email sent to {to}")
+    return {"status": "sent"}
+```
 
-# Use tasks
+### 2. Run the Worker
+
+```bash
+# Celery-compatible CLI - same syntax!
+aiotasks -A myapp worker -l INFO -c 10
+```
+
+### 3. Queue Tasks
+
+```python
 async def main():
-    app.run()  # Start worker
-
-    # Queue tasks for async execution
-    await send_email.delay("user@example.com", "Hello", "World")
-
-    # Wait for completion
+    app.run()
+    await send_email.delay("user@example.com", "Hello", "World!")
     await app.wait(timeout=10, exit_on_finish=True)
     app.stop()
 
 asyncio.run(main())
 ```
 
-<details>
-<summary>Alternative: Classic API (still supported)</summary>
-
-```python
-import asyncio
-from aiotasks import build_manager
-
-# Create a task manager
-manager = build_manager("redis://localhost:6379/0")
-
-# Define a task
-@manager.task()
-async def send_email(to: str, subject: str, body: str):
-    await asyncio.sleep(1)
-    print(f"Email sent to {to}")
-
-# Use the task
-async def main():
-    manager.run()
-    await send_email.delay("user@example.com", "Hello", "World")
-    await manager.wait(timeout=10, exit_on_finish=True)
-    manager.stop()
-
-asyncio.run(main())
-```
-</details>
-
 ---
 
-## 🔌 Backend Support
+## 💡 Examples
 
-### Redis (Production)
+### Modern Python Features
 
 ```python
-from aiotasks import build_manager
+from enum import StrEnum, auto
 
-manager = build_manager("redis://localhost:6379/0")
+class Priority(StrEnum):
+    URGENT = auto()
+    HIGH = auto()
+    NORMAL = auto()
+
+@app.task()
+async def send_notification(
+    user_id: int,
+    message: str,
+    priority: Priority = Priority.NORMAL,
+) -> dict[str, str | int]:
+    # Python 3.10+ pattern matching
+    match priority:
+        case Priority.URGENT:
+            delay = 0
+        case Priority.HIGH:
+            delay = 0.1
+        case _:
+            delay = 0.5
+
+    await asyncio.sleep(delay)
+    return {"user_id": user_id, "status": "sent"}
 ```
 
-Perfect for production deployments with persistent task queues.
-
-### RabbitMQ / AMQP (Enterprise)
+### Integration with FastAPI
 
 ```python
-manager = build_manager("amqp://guest:guest@localhost:5672/")
-```
-
-Ideal for enterprise environments requiring reliable message delivery.
-
-### ZeroMQ (High Performance)
-
-```python
-manager = build_manager("zmq://localhost:5555")
-```
-
-Best for ultra-low latency and high-throughput scenarios.
-
-### Memory (Development)
-
-```python
-manager = build_manager("memory://")
-```
-
-Perfect for development and testing.
-
----
-
-## 🌐 FastAPI Integration
-
-```python
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from aiotasks.integrations.fastapi import aiotasks_lifespan
+from aiotasks import AioTasks
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    async with aiotasks_lifespan(
-        app,
-        dsn="redis://localhost:6379/0"
-    ) as state:
-        yield state
+api = FastAPI()
+app = AioTasks("api_tasks", broker="redis://localhost")
 
-app = FastAPI(lifespan=lifespan)
+@app.task()
+async def send_welcome_email(email: str):
+    await asyncio.sleep(1)
+    return {"status": "sent"}
 
-@app.state.aiotasks.task()
-async def process_upload(file_id: int):
-    # Process file asynchronously
+@api.post("/register")
+async def register_user(email: str):
+    await send_welcome_email.delay(email)
+    return {"status": "registered"}
+
+@api.on_event("startup")
+async def startup():
+    app.run()
+```
+
+---
+
+## 🖥️ CLI Reference
+
+**Celery-compatible CLI** - The syntax is nearly identical!
+
+```bash
+# Start worker
+aiotasks -A myapp worker -l INFO -c 10
+
+# With specific queues
+aiotasks -A myapp worker -Q high,normal,low
+
+# Inspect tasks
+aiotasks inspect active
+aiotasks inspect stats
+
+# Control workers
+aiotasks control shutdown
+
+# Show status
+aiotasks status
+```
+
+---
+
+## 🔧 Backends
+
+| Backend | Use Case | Persistence | Performance |
+|---------|----------|-------------|-------------|
+| Memory | Development | ❌ | ⚡⚡⚡ |
+| Redis | Production | ✅ | ⚡⚡⚡ |
+| RabbitMQ | Enterprise | ✅ | ⚡⚡ |
+| ZeroMQ | High-perf | ❌ | ⚡⚡⚡ |
+
+```python
+# Memory (development)
+app = AioTasks("dev", broker="memory://")
+
+# Redis (production - recommended)
+app = AioTasks("prod", broker="redis://localhost:6379/0")
+
+# RabbitMQ (enterprise)
+app = AioTasks("enterprise", broker="amqp://guest:guest@localhost/")
+
+# ZeroMQ (high performance)
+app = AioTasks("fast", broker="zmq://localhost:5555")
+```
+
+---
+
+## 🔄 Migration from 1.0.x
+
+### Before (v1.x)
+
+```python
+from aiotasks import build_manager
+
+manager = build_manager("redis://localhost")
+
+@manager.task()
+async def my_task():
     pass
-
-@app.post("/upload")
-async def upload_file(file_id: int):
-    await process_upload.delay(file_id)
-    return {"status": "processing"}
 ```
 
-See `examples_new/fastapi/` for complete examples.
+### After (v2.x - Recommended)
 
----
+```python
+from aiotasks import AioTasks
 
-## 📖 Documentation
+app = AioTasks("myapp", broker="redis://localhost")
 
-- **[Quick Start Guide](docs/quickstart.md)** - Get started in 5 minutes
-- **[API Reference](docs/api.md)** - Complete API documentation
-- **[Examples](examples_new/)** - Real-world usage examples
-- **[Backends](docs/backends.md)** - Backend configuration guide
-- **[FastAPI Integration](docs/fastapi.md)** - FastAPI integration guide
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│                  Your Application                │
-│  (FastAPI, aiohttp, Django Ninja, etc.)          │
-└──────────────────┬──────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────┐
-│              aiotasks Manager                    │
-│  • Task Registration                             │
-│  • Task Routing                                  │
-│  • Concurrency Control                           │
-└──────────────────┬──────────────────────────────┘
-                   │
-      ┌────────────┼────────────┐
-      ▼            ▼            ▼
- ┌────────┐  ┌────────┐  ┌────────┐
- │ Redis  │  │ RabbitMQ│ │ ZeroMQ │
- │Backend │  │ Backend │ │Backend │
- └────────┘  └────────┘  └────────┘
+@app.task()
+async def my_task():
+    pass
 ```
 
+**Note:** Both APIs work! The classic API is still supported. ✅
+
 ---
 
-## 🔬 Development
+## 🆕 What's New in 2.0
 
-### Setup
+### Major Features
+- ✅ **Celery-Compatible CLI** - Same commands, familiar syntax
+- ✅ **Modern API** - `AioTasks` class mimics Celery
+- ✅ **Python 3.11+ Support** - Pattern matching, StrEnum, modern type hints
+- ✅ **Retry Logic** - Automatic retries with exponential backoff
+- ✅ **ACK/NACK** - Reliable task processing
+- ✅ **TTL Support** - Task expiration
+- ✅ **Pydantic v2** - Modern data validation
 
-```bash
-# Clone the repository
-git clone https://github.com/cr0hn/aiotasks.git
-cd aiotasks
+### Infrastructure
+- ✅ **pytest Suite** - Modern testing (40%+ coverage)
+- ✅ **GitHub Actions** - Complete CI/CD
+- ✅ **MkDocs** - Beautiful documentation
+- ✅ **Type Safety** - Full type hints
 
-# Create virtual environment with uv
-uv venv --python 3.12
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+### Breaking Changes
+- Requires Python >=3.11 (was >=3.7)
+- Removed deprecated booby
+- Updated msgpack compatibility
 
-# Install with development dependencies
-uv pip install -e ".[dev,all]"
+See [CHANGELOG.md](CHANGELOG.md) for details.
 
-# Install pre-commit hooks
-pre-commit install
+---
+
+## 🤔 Why AioTasks?
+
+### vs Celery
+
+- ✅ **Native Async** - No worker processes needed
+- ✅ **Modern Python** - Uses 3.11+ features
+- ✅ **Type Safe** - Complete type hints
+- ✅ **Simpler** - Memory backend for development
+- ✅ **Compatible** - Easy migration
+
+### vs TaskIQ / ARQ
+
+- ✅ **Celery-Compatible** - Familiar API
+- ✅ **More Backends** - 4+ supported
+- ✅ **Built-in Retry** - Sophisticated logic
+- ✅ **Full CLI** - Complete tooling
+- ✅ **Easy Migration** - From Celery
+
+---
+
+## 📚 Documentation
+
+- 📖 **Full Docs**: [aiotasks.readthedocs.io](https://aiotasks.readthedocs.io)
+- 🚀 **Quick Start**: [Getting Started Guide](https://aiotasks.readthedocs.io/getting-started/quickstart/)
+- 📘 **API Reference**: [API Docs](https://aiotasks.readthedocs.io/api/aiotasks/)
+- 💡 **Examples**: [examples_new/](examples_new/)
+- 🌍 **Languages**: English & Spanish
+
+---
+
+## 📄 License
+
+**BSD-3-Clause License**
+
+```
+Copyright (c) 2024, Daniel Garcia (cr0hn)
+All rights reserved.
 ```
 
-### Testing
-
-```bash
-# Run tests
-pytest
-
-# Run tests with coverage
-pytest --cov=aiotasks --cov-report=html
-
-# Run specific tests
-pytest tests/test_redis.py
-```
-
-### Code Quality
-
-```bash
-# Format code
-ruff format .
-
-# Lint code
-ruff check .
-
-# Type check
-mypy aiotasks
-
-# Run all checks
-pre-commit run --all-files
-```
+See [LICENSE](LICENSE) for full text.
 
 ---
 
-## 📊 Comparison with Celery
+<div align="center">
 
-| Feature | aiotasks | Celery |
-|---------|----------|--------|
-| Async/Await | ✅ Native | ⚠️ Limited |
-| Python Version | 3.12+ | 3.8+ |
-| Type Hints | ✅ Complete | ⚠️ Partial |
-| Redis Support | ✅ Native async | ✅ Sync |
-| RabbitMQ Support | ✅ Native async | ✅ Sync |
-| ZeroMQ Support | ✅ Native async | ❌ No |
-| FastAPI Integration | ✅ Built-in | ⚠️ Manual |
-| Learning Curve | 🟢 Low | 🟡 Medium |
-| Performance | 🚀 Very Fast | ⚡ Fast |
+**Made with ❤️ by [cr0hn](https://github.com/cr0hn)**
 
----
+⭐ **Star us on GitHub** if you find AioTasks useful!
 
-## 🤝 Contributing
+[GitHub](https://github.com/cr0hn/aiotasks) •
+[PyPI](https://pypi.org/project/aiotasks/) •
+[Documentation](https://aiotasks.readthedocs.io)
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) first.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests and linting
-5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
----
-
-## 📜 License
-
-This project is licensed under the BSD-3-Clause License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Credits
-
-**Author**: Daniel Garcia (cr0hn) - [@ggdaniel](https://twitter.com/ggdaniel)
-
-**Contributors**: See [CONTRIBUTORS.md](CONTRIBUTORS.md)
-
----
-
-## 🌟 Star History
-
-If you find this project useful, please consider giving it a star! ⭐
-
----
-
-## 📬 Support
-
-- **Issues**: [GitHub Issues](https://github.com/cr0hn/aiotasks/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/cr0hn/aiotasks/discussions)
-- **Twitter**: [@ggdaniel](https://twitter.com/ggdaniel)
-
----
-
-Made with ❤️ by the aiotasks community
+</div>
