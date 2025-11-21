@@ -1,6 +1,5 @@
 """Tests for helper functions and utilities."""
 
-import pytest
 
 from aiotasks.helpers import parse_dsn
 

@@ -4,7 +4,6 @@ Modern Python 3.11+ fixtures using pytest-asyncio.
 """
 
 import asyncio
-from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
@@ -51,13 +50,13 @@ async def memory_app():
     app.stop()
 
 
-@pytest.fixture
+@pytest.fixture()
 def task_timeout() -> float:
     """Default timeout for task execution."""
     return 2.0
 
 
-@pytest.fixture
+@pytest.fixture()
 def wait_timeout() -> float:
     """Default timeout for waiting between polls."""
     return 0.1

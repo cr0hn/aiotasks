@@ -11,12 +11,10 @@ from ..helpers import check_input_config
 from .api import find_manager
 from .model import *
 
-log = logging.getLogger('aiotasks')
+log = logging.getLogger("aiotasks")
 
 
-def make_summary(config: AioTasksDefaultModel,
-                 tasks_available: list,
-                 subscribers: dict) -> str:
+def make_summary(config: AioTasksDefaultModel, tasks_available: list, subscribers: dict) -> str:
     now = datetime.datetime.now()
 
     display_subscriptions = []
@@ -45,16 +43,18 @@ def make_summary(config: AioTasksDefaultModel,
 
 [subscriptions]
 {subscriptions}
-""".format(hostname=socket.gethostname(),
-           version="1.0.0-a1",
-           os=platform.system(),
-           arch=platform.release(),
-           date=now.strftime("%Y-%m-%d"),
-           time=now.strftime("%H:%M:%S"),
-           app_id=hex(current_thread().ident),
-           concurrency=config.concurrency,
-           tasks="-  \n".join(tasks_available),
-           subscriptions="\n".join(display_subscriptions))
+""".format(
+        hostname=socket.gethostname(),
+        version="1.0.0-a1",
+        os=platform.system(),
+        arch=platform.release(),
+        date=now.strftime("%Y-%m-%d"),
+        time=now.strftime("%H:%M:%S"),
+        app_id=hex(current_thread().ident),
+        concurrency=config.concurrency,
+        tasks="-  \n".join(tasks_available),
+        subscriptions="\n".join(display_subscriptions),
+    )
 
 
 def launch_aiotasks_worker_in_console(shared_config, **kwargs):
@@ -77,8 +77,10 @@ def launch_aiotasks_worker_in_console(shared_config, **kwargs):
 
     # Check DSN
     if manager.dsn.startswith("memory://"):
-        warnings.warn("aiotasks cmd binary can't be used with 'memory://' "
-                      "backend. Please choose other and try again")
+        warnings.warn(
+            "aiotasks cmd binary can't be used with 'memory://' "
+            "backend. Please choose other and try again"
+        )
         return
 
     try:
@@ -87,9 +89,7 @@ def launch_aiotasks_worker_in_console(shared_config, **kwargs):
         # --------------------------------------------------------------------------
         # Display summary. Cloned from Celery
         # --------------------------------------------------------------------------
-        print(make_summary(config,
-                           manager.task_available_tasks.keys(),
-                           manager.topics_subscribers))
+        print(make_summary(config, manager.task_available_tasks.keys(), manager.topics_subscribers))
 
         manager.blocking_wait()
     finally:

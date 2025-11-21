@@ -1,21 +1,27 @@
-CHANGELOG
-=========
+# Changelog
 
-Version 1.0.0-a2
-----------------
+All notable changes to this project will be documented in this file.
 
-### New features
+## [2.0.0] - 2024-01-XX
 
-- Add: new function **send_to** to avoid the need to has access to function to send the task to manager. Now we can use them instead of **task.delay(...)**.
-- Add: new function **current_app** that will return the aiotask manager instance.
-- Add: integrated cycle of deploy using Travis.
+### Added
 
-### Improvements and fixes
+- **Celery-Style API**: New AioTasks class with familiar Celery-like interface
+- **Modern Python 3.11+ Support**: Pattern matching, StrEnum, modern type hints
+- **Retry Logic**: Automatic retry with exponential backoff using tenacity
+- **ACK/NACK Support**: Task acknowledgment for reliable processing
+- **TTL (Time-To-Live)**: Configurable task expiration
+- **Comprehensive Testing**: Modern pytest test suite (40%+ coverage baseline)
+- **CI/CD Pipeline**: GitHub Actions workflows for testing and deployment
+- **Documentation**: MkDocs-based docs with multi-language support
 
-- Imp: the import method for tasks was changed. Now we can import tasks from a different directory or current directory.
+### Changed
 
+- **Pydantic Migration**: Migrated from deprecated booby to pydantic
+- **Python Requirement**: Now requires Python >=3.11
+- **msgpack Compatibility**: Updated for msgpack 1.0+
 
-Version 1.0.0-a1
-----------------
+### Fixed
 
-First release
+- Circular import issues in actions/ modules
+- Event loop handling in async contexts

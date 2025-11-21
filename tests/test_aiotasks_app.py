@@ -10,7 +10,7 @@ import pytest
 from aiotasks import AioTasks
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_initialization():
     """Test AioTasks app initialization."""
     app = AioTasks(
@@ -29,7 +29,7 @@ async def test_app_initialization():
     assert app._manager.task_ttl == 120
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_task_decorator():
     """Test @app.task decorator."""
     app = AioTasks("test_app", broker="memory://")
@@ -51,7 +51,7 @@ async def test_app_task_decorator():
     assert executed is True
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_task_with_args():
     """Test task with arguments."""
     app = AioTasks("test_app", broker="memory://")
@@ -71,7 +71,7 @@ async def test_app_task_with_args():
     assert result_value == 30
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_task_with_kwargs():
     """Test task with keyword arguments."""
     app = AioTasks("test_app", broker="memory://")
@@ -92,7 +92,7 @@ async def test_app_task_with_kwargs():
     assert result["value"] == 100
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_task_custom_name():
     """Test task with custom name."""
     app = AioTasks("test_app", broker="memory://")
@@ -104,7 +104,7 @@ async def test_app_task_custom_name():
     assert "custom_task_name" in app._manager.task_available_tasks
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_multiple_tasks():
     """Test multiple tasks execution."""
     app = AioTasks("test_app", broker="memory://")
@@ -138,7 +138,7 @@ async def test_app_multiple_tasks():
     assert "task_three" in executed_tasks
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_run_and_stop():
     """Test app.run() and app.stop()."""
     app = AioTasks("test_app", broker="memory://")
@@ -154,7 +154,7 @@ async def test_app_run_and_stop():
     # Just verify app was created successfully
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_wait_timeout():
     """Test app.wait() with timeout."""
     app = AioTasks("test_app", broker="memory://")
@@ -170,7 +170,7 @@ async def test_app_wait_timeout():
     await app.wait(timeout=1, exit_on_finish=False, wait_timeout=0.1)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_repr():
     """Test string representation."""
     app = AioTasks("test_app", broker="redis://localhost:6379/0")
@@ -180,7 +180,7 @@ async def test_app_repr():
     assert "redis://localhost:6379/0" in repr_str
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_modern_type_hints():
     """Test task with modern Python 3.11+ type hints."""
     app = AioTasks("test_app", broker="memory://")
@@ -203,7 +203,7 @@ async def test_app_modern_type_hints():
     assert result == "Processed 3 fields"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_app_pattern_matching():
     """Test task using Python 3.10+ match/case."""
     app = AioTasks("test_app", broker="memory://")

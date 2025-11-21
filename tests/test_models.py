@@ -1,6 +1,5 @@
 """Tests for Pydantic models."""
 
-import pytest
 from pydantic import ValidationError
 
 from aiotasks.core.model import SharedConfig

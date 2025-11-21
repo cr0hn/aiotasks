@@ -3,7 +3,7 @@ import logging
 from aiotasks.core.exceptions import AioTasksTypeError
 from aiotasks.core.model import SharedConfig
 
-log = logging.getLogger('aiotasks')
+log = logging.getLogger("aiotasks")
 
 
 def check_input_config(config: SharedConfig) -> None | AioTasksTypeError:
@@ -26,8 +26,7 @@ def run_with_exceptions_and_logs(function, config):
         log.critical(f"[!] Unhandled exception: {e}")
 
         if config.debug:
-            log.exception(f"[!] Unhandled exception: {e}",
-                          stack_info=True)
+            log.exception(f"[!] Unhandled exception: {e}", stack_info=True)
     finally:
         log.console("[*] Shutdown...")
 

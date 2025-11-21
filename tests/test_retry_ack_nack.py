@@ -10,7 +10,7 @@ import pytest
 from aiotasks import AioTasks, build_manager
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_task_retry_success_after_failure():
     """Test task that fails then succeeds."""
     app = AioTasks("test_app", broker="memory://", max_retries=3)
@@ -35,7 +35,7 @@ async def test_task_retry_success_after_failure():
     assert final_status == "success"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_task_retry_max_attempts():
     """Test task that always fails reaches max retries."""
     app = AioTasks("test_app", broker="memory://", max_retries=2)
@@ -56,7 +56,7 @@ async def test_task_retry_max_attempts():
     assert attempt_count == 2  # max_retries
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_task_no_retry_on_success():
     """Test task that succeeds on first attempt doesn't retry."""
     app = AioTasks("test_app", broker="memory://", max_retries=5)
@@ -76,7 +76,7 @@ async def test_task_no_retry_on_success():
     assert attempt_count == 1
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_multiple_tasks_with_retries():
     """Test multiple tasks with different retry behaviors."""
     app = AioTasks("test_app", broker="memory://", max_retries=3)
@@ -110,7 +110,7 @@ async def test_multiple_tasks_with_retries():
     assert counts["fail"] == 3  # Failed all 3 attempts
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_task_ack_on_success():
     """Test that successful tasks are acknowledged."""
     manager = build_manager("memory://", max_retries=3)
@@ -133,7 +133,7 @@ async def test_task_ack_on_success():
     # (ACK removes it from tracking)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_task_nack_on_failure():
     """Test that failed tasks are negatively acknowledged."""
     manager = build_manager("memory://", max_retries=2)
@@ -154,7 +154,7 @@ async def test_task_nack_on_failure():
     assert attempt_count == 2  # Failed max_retries times
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_retry_with_different_exceptions():
     """Test retry behavior with different exception types."""
     app = AioTasks("test_app", broker="memory://", max_retries=3)
@@ -191,7 +191,7 @@ async def test_retry_with_different_exceptions():
     assert attempts["type"] == 2
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_concurrent_tasks_with_retries():
     """Test concurrent task execution with retries."""
     app = AioTasks("test_app", broker="memory://", concurrency=5, max_retries=2)
@@ -215,7 +215,7 @@ async def test_concurrent_tasks_with_retries():
     assert set(results) == set(range(10))
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_retry_exponential_backoff():
     """Test that retry uses exponential backoff."""
     import time
