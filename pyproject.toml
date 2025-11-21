@@ -79,6 +79,7 @@ docs = [
 
 [project.scripts]
 aiotasks = "aiotasks.cli:main"
+aiotasks-worker = "aiotasks.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/cr0hn/aiotasks"
