@@ -132,4 +132,9 @@ ENV/
 # Rope project settings
 .ropeproject
 .idea/
-*.rdb
+*.rdbcoverage.json
+
+# Coverage files
+coverage.json
+htmlcov/
+.coverage

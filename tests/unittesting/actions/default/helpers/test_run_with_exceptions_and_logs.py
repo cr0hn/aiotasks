@@ -1,6 +1,6 @@
 import logging
 
-from aiotasks import run_with_exceptions_and_logs, SharedConfig
+from aiotasks import run_with_exceptions_and_logs
 
 
 def test_run_with_exceptions_and_logs_oks(monkeypatch):

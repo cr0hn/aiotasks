@@ -2,7 +2,6 @@
 This file contains utils and reusable functions
 """
 import logging
-
 from collections import namedtuple
 
 
@@ -31,11 +30,9 @@ def dict_to_obj(data):
 def get_log_level(verbosity: int) -> int:
     verbosity *= 10
 
-    if verbosity > logging.CRITICAL:
-        verbosity = logging.CRITICAL
+    verbosity = min(verbosity, logging.CRITICAL)
 
-    if verbosity < logging.DEBUG:
-        verbosity = logging.DEBUG
+    verbosity = max(verbosity, logging.DEBUG)
 
     return (logging.CRITICAL - verbosity) + 10
 

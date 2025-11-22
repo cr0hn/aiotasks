@@ -1,21 +1,20 @@
-import concurrent.futures
+"""Custom exceptions for aiotasks."""
 
 
 class AioTasksError(Exception):
-    pass
+    """Base exception for all aiotasks errors."""
 
 
 class AioTasksValueError(ValueError):
-    pass
+    """Raised when an invalid value is provided."""
 
 
 class AioTasksTypeError(TypeError):
-    pass
+    """Raised when an incorrect type is provided."""
 
 
-class AioTasksTimeout(concurrent.futures.TimeoutError):
-    pass
+class AioTasksTimeout(TimeoutError):
+    """Raised when a task execution exceeds the timeout limit."""
 
 
-__all__ = ("AioTasksError", "AioTasksValueError", "AioTasksTypeError",
-           "AioTasksTimeout")
+__all__ = ("AioTasksError", "AioTasksTimeout", "AioTasksTypeError", "AioTasksValueError")

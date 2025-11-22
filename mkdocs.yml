@@ -1,0 +1,116 @@
+site_name: AioTasks
+site_description: Celery-like async task queue for Python 3.11+
+site_author: Daniel Garcia (cr0hn)
+site_url: https://aiotasks.readthedocs.io
+
+repo_name: cr0hn/aiotasks
+repo_url: https://github.com/cr0hn/aiotasks
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          name: English
+          build: true
+          default: true
+        - locale: es
+          name: Español
+          build: true
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [aiotasks]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_category_heading: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Configuration: getting-started/configuration.md
+  - User Guide:
+      - Celery-Style API: guide/celery-style.md
+      - Classic API: guide/classic-api.md
+      - Task Decorators: guide/decorators.md
+      - Retry & Error Handling: guide/retry.md
+      - Backends: guide/backends.md
+  - Examples:
+      - Basic Usage: examples/basic.md
+      - FastAPI Integration: examples/fastapi.md
+      - Advanced Patterns: examples/advanced.md
+      - Integration: examples/integration.md
+  - API Reference:
+      - AioTasks: api/aiotasks.md
+      - Backends: api/backends.md
+      - Exceptions: api/exceptions.md
+  - Development:
+      - Contributing: development/contributing.md
+      - Testing: development/testing.md
+      - Changelog: development/changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/cr0hn/aiotasks
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/aiotasks/
+  version:
+    provider: mike

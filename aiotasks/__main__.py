@@ -1,18 +1,19 @@
+#!/usr/bin/env python3
+"""AioTasks CLI entry point.
+
+Allows running: python -m aiotasks
+"""
+
+
 def main():
-    import os
-    import sys
+    """Main entry point."""
+    from aiotasks.cli import main as cli_main
 
-    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(1, parent_dir)
-    import aiotasks
-
-    __package__ = str("aiotasks")
-
-    # Run the cmd
-    from aiotasks.actions.cli import cli
-
-    cli()
+    cli_main()
 
 
 if __name__ == "__main__":  # pragma no cover
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        pass

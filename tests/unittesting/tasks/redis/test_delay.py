@@ -1,8 +1,8 @@
+import asyncio
+import logging
 import time
 import uuid
-import asyncio
 
-import logging
 import msgpack
 
 from aiotasks import build_manager
@@ -161,8 +161,8 @@ def test_redis_delay_task_decorator_invalid_function(event_loop, redis_instance)
 
 def test_redis_delay_task_decorator_invalid_task_id_format(event_loop, redis_instance):
 
-    import random
     import logging
+    import random
 
     logger = logging.getLogger("aiotasks")
 
@@ -201,7 +201,7 @@ def test_redis_delay_task_decorator_invalid_task_id_format(event_loop, redis_ins
     event_loop.run_until_complete(run())
     manager.stop()
 
-    assert "Task ID '{}' has not valid UUID4 format".format(task_id) in custom.content
+    assert f"Task ID '{task_id}' has not valid UUID4 format" in custom.content
 
 
 def test_redis_delay_task_decorator_custom_task_name(event_loop, redis_instance):

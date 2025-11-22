@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # aiotasks
 #
@@ -23,14 +22,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-import re
-import os
-import sys
 import codecs
-
+import os
+import re
+import sys
 from os.path import dirname, join
-from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
+
+from setuptools import find_packages, setup
 
 if sys.version_info < (3, 5,):
     raise RuntimeError("aiotasks requires Python 3.5.0+")

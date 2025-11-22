@@ -2,13 +2,12 @@ import asyncio
 
 from aiotasks import build_manager
 
-
 manager = build_manager("redis://")
 
 
 @manager.task()
 async def task_01(num):
-    print("Task 01 starting: {}".format(num))
+    print(f"Task 01 starting: {num}")
     await asyncio.sleep(2, loop=manager.loop)
     print("Task 01 stopping")
 

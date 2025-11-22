@@ -1,23 +1,18 @@
-include LICENSE CHANGELOG.md README.rst
-include requirements.txt requirements-performance.txt
+include README.rst
+include LICENSE
+include CHANGELOG.md
+include pyproject.toml
 
-recursive-exclude * __pycache__
-recursive-exclude * *.pyc
-recursive-exclude * *.pyo
-recursive-exclude * *.orig
-recursive-exclude * .DS_Store
-global-exclude __pycache__/*
-global-exclude .cache
-global-exclude .tox
-global-exclude .deps/*
+recursive-include aiotasks *.py
+recursive-include tests *.py
+recursive-include docs *.md
+recursive-include examples_new *.py
+
+exclude .gitignore
+exclude .pre-commit-config.yaml
+exclude pytest.ini
+
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *~
 global-exclude *.so
-global-exclude *.pyd
-global-exclude *.pyc
-global-exclude .git*
-global-exclude .DS_Store
-global-exclude .mailmap
-
-prune aiotasks/doc*
-prune aiotasks/examples*
-prune aiotasks/tests*
-

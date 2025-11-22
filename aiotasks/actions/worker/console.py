@@ -1,33 +1,28 @@
-import socket
-import logging
-import warnings
-import platform
 import datetime
-
-from typing import List, Dict
+import logging
+import platform
+import socket
+import warnings
 from threading import current_thread
 
-from aiotasks import get_log_level
-
-from .model import *
-from .api import find_manager
 from ...core.exceptions import AioTasksTypeError
-from ..helpers import check_input_config, run_with_exceptions_and_logs
+from ...core.helpers import get_log_level
+from ..helpers import check_input_config
+from .api import find_manager
+from .model import *
 
-log = logging.getLogger('aiotasks')
+log = logging.getLogger("aiotasks")
 
 
-def make_summary(config: AioTasksDefaultModel,
-                 tasks_available: List,
-                 subscribers: dict) -> str:
+def make_summary(config: AioTasksDefaultModel, tasks_available: list, subscribers: dict) -> str:
     now = datetime.datetime.now()
 
     display_subscriptions = []
     for topic, clients in subscribers.items():
-        display_subscriptions.append("'{}'".format(topic))
+        display_subscriptions.append(f"'{topic}'")
 
         for client in clients:
-            display_subscriptions.append("   > {}".format(client.__name__))
+            display_subscriptions.append(f"   > {client.__name__}")
 
     return """
  \033[1;37;40m--------------
@@ -48,16 +43,18 @@ def make_summary(config: AioTasksDefaultModel,
 
 [subscriptions]
 {subscriptions}
-""".format(hostname=socket.gethostname(),
-           version="1.0.0-a1",
-           os=platform.system(),
-           arch=platform.release(),
-           date=now.strftime("%Y-%m-%d"),
-           time=now.strftime("%H:%M:%S"),
-           app_id=hex(current_thread().ident),
-           concurrency=config.concurrency,
-           tasks="-  \n".join(tasks_available),
-           subscriptions="\n".join(display_subscriptions))
+""".format(
+        hostname=socket.gethostname(),
+        version="1.0.0-a1",
+        os=platform.system(),
+        arch=platform.release(),
+        date=now.strftime("%Y-%m-%d"),
+        time=now.strftime("%H:%M:%S"),
+        app_id=hex(current_thread().ident),
+        concurrency=config.concurrency,
+        tasks="-  \n".join(tasks_available),
+        subscriptions="\n".join(display_subscriptions),
+    )
 
 
 def launch_aiotasks_worker_in_console(shared_config, **kwargs):
@@ -80,8 +77,10 @@ def launch_aiotasks_worker_in_console(shared_config, **kwargs):
 
     # Check DSN
     if manager.dsn.startswith("memory://"):
-        warnings.warn("aiotasks cmd binary can't be used with 'memory://' "
-                      "backend. Please choose other and try again")
+        warnings.warn(
+            "aiotasks cmd binary can't be used with 'memory://' "
+            "backend. Please choose other and try again"
+        )
         return
 
     try:
@@ -90,9 +89,7 @@ def launch_aiotasks_worker_in_console(shared_config, **kwargs):
         # --------------------------------------------------------------------------
         # Display summary. Cloned from Celery
         # --------------------------------------------------------------------------
-        print(make_summary(config,
-                           manager.task_available_tasks.keys(),
-                           manager.topics_subscribers))
+        print(make_summary(config, manager.task_available_tasks.keys(), manager.topics_subscribers))
 
         manager.blocking_wait()
     finally:

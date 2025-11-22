@@ -1,13 +1,11 @@
+import importlib
 import os
 import sys
-import importlib
-
 from functools import partial
 
-from aiotasks import AsyncTaskBase
-
-from .model import *
 from ...core.exceptions import AioTasksError
+from ...tasks.bases import AsyncTaskBase
+from .model import *
 
 here = os.getcwd()
 get_path = partial(os.path.join, here)
@@ -25,7 +23,7 @@ def find_manager(config: AioTasksDefaultModel) -> AsyncTaskBase:
     try:
         app = importlib.import_module(_module)
     except ImportError:
-        _module_with_extension = "{}.py".format(_module)
+        _module_with_extension = f"{_module}.py"
 
         # If import fails, try lo add the container folder to the path
         if os.path.exists(os.path.join(os.getcwd(), _module_with_extension)):

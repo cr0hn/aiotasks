@@ -1,16 +1,15 @@
 import logging
 
-from typing import Union
+from aiotasks.core.exceptions import AioTasksTypeError
+from aiotasks.core.model import SharedConfig
 
-from aiotasks import SharedConfig, AioTasksTypeError
-
-log = logging.getLogger('aiotasks')
+log = logging.getLogger("aiotasks")
 
 
-def check_input_config(config: SharedConfig) -> Union[None, AioTasksTypeError]:
+def check_input_config(config: SharedConfig) -> None | AioTasksTypeError:
     if config and not config.is_valid:
         for prop, msg in config.validation_errors:
-            raise AioTasksTypeError("'{}' property {}".format(prop, msg))
+            raise AioTasksTypeError(f"'{prop}' property {msg}")
 
     return None
 
@@ -24,11 +23,10 @@ def run_with_exceptions_and_logs(function, config):
     except KeyboardInterrupt:
         log.console("[*] CTRL+C caught. Exiting...")
     except Exception as e:
-        log.critical("[!] Unhandled exception: {}".format(e))
+        log.critical(f"[!] Unhandled exception: {e}")
 
         if config.debug:
-            log.exception("[!] Unhandled exception: {}".format(e),
-                          stack_info=True)
+            log.exception(f"[!] Unhandled exception: {e}", stack_info=True)
     finally:
         log.console("[*] Shutdown...")
 

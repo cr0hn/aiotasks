@@ -2,15 +2,14 @@ import asyncio
 
 from aiotasks import build_manager, send_task
 
-
 manager = build_manager("redis://")
 
 
 @manager.task()
 async def task_01(num):
-    print("Starting task: {}".format(num))
+    print(f"Starting task: {num}")
     await asyncio.sleep(2, loop=manager.loop)
-    print("Stopping task: {}".format(num))
+    print(f"Stopping task: {num}")
 
 
 async def generate_tasks():
@@ -18,8 +17,8 @@ async def generate_tasks():
     # t = send_task("task_01", 1)
     # await t
     for x in range(5):
-        print("Iteration: {}".format(x))
-        
+        print(f"Iteration: {x}")
+
         await send_task("task_01", args=(x, ))
 
 if __name__ == '__main__':

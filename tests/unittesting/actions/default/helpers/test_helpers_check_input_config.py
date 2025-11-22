@@ -1,6 +1,6 @@
 import pytest
 
-from aiotasks import check_input_config, SharedConfig, AioTasksTypeError
+from aiotasks import AioTasksTypeError, SharedConfig, check_input_config
 
 
 def test_check_input_config_return_none():

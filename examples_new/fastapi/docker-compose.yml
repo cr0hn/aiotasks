@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # Redis - Message broker
+  redis:
+    image: redis:7-alpine
+    container_name: aiotasks-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - aiotasks
+
+  # FastAPI application (API only, no workers)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aiotasks-api
+    command: uvicorn production_app:api --host 0.0.0.0 --port 8000 --workers 4
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - aiotasks
+    restart: unless-stopped
+
+  # Task workers - High priority queue
+  worker-high:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: aiotasks -A production_app.tasks worker -l INFO -c 20 -Q high
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - aiotasks
+    restart: unless-stopped
+    deploy:
+      replicas: 2  # Run 2 high-priority workers
+
+  # Task workers - Normal priority queue
+  worker-normal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: aiotasks -A production_app.tasks worker -l INFO -c 10 -Q normal
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - aiotasks
+    restart: unless-stopped
+    deploy:
+      replicas: 3  # Run 3 normal-priority workers
+
+  # Task workers - Low priority queue
+  worker-low:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: aiotasks -A production_app.tasks worker -l INFO -c 5 -Q low
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - aiotasks
+    restart: unless-stopped
+    deploy:
+      replicas: 1  # Run 1 low-priority worker
+
+  # Optional: Redis Commander for monitoring
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: aiotasks-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - aiotasks
+    restart: unless-stopped
+
+networks:
+  aiotasks:
+    driver: bridge
+
+volumes:
+  redis_data:
