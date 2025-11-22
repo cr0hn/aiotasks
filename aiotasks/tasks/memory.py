@@ -89,12 +89,16 @@ class AsyncTaskDelayMemory(AsyncTaskDelayBase):
         concurrency: int = 5,
         max_retries: int = 3,
         task_ttl: int = 3600,
+        pool: str = "async",
+        celery_compat: bool = False,
     ):
         super().__init__(
             prefix=prefix,
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
+            celery_compat=celery_compat,
         )
 
         # Single shared queue - tasks are distributed round-robin to workers

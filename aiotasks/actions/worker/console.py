@@ -24,6 +24,7 @@ def make_summary(config: AioTasksDefaultModel, tasks_available: list, subscriber
         for client in clients:
             display_subscriptions.append(f"   > {client.__name__}")
 
+    pool_display = config.pool if hasattr(config, "pool") else "async"
     return """
  \033[1;37;40m--------------
 --------------- aiotasks@{hostname} {version}
@@ -34,7 +35,7 @@ def make_summary(config: AioTasksDefaultModel, tasks_available: list, subscriber
 -- ***   *** -- .> app:         {app_id}
 -- ********* -- .> transport:   redis://localhost:6379//
 -- ***   *** -- .> results:     redis://localhost:6379/
--- ***   *** -- .> concurrency: {concurrency} (asyncio)
+-- ***   *** -- .> concurrency: {concurrency} ({pool})
  --------------\033[0;0m
 
 
@@ -52,6 +53,7 @@ def make_summary(config: AioTasksDefaultModel, tasks_available: list, subscriber
         time=now.strftime("%H:%M:%S"),
         app_id=hex(current_thread().ident),
         concurrency=config.concurrency,
+        pool=pool_display,
         tasks="-  \n".join(tasks_available),
         subscriptions="\n".join(display_subscriptions),
     )

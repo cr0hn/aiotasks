@@ -11,13 +11,19 @@ import time
 import uuid
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
-from typing import Any
+from typing import Any, Literal
 
 try:
     import umsgpack as msgpack
 except ImportError:  # pragma: no cover
     import msgpack
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 from tenacity import (
     RetryError,
@@ -249,7 +255,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
     This class provides the foundation for implementing delayed/deferred task
     execution in asyncio applications. It manages task registration, queuing,
-    concurrency control, retry logic, and execution.
+    concurrency control, retry logic, and execution with multiple pool types.
 
     Attributes:
         task_prefix: Namespace prefix for tasks.
@@ -260,6 +266,8 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         task_concurrency_sem: Semaphore controlling concurrent task execution.
         max_retries: Maximum number of retry attempts for failed tasks.
         task_ttl: Time-to-live for tasks in seconds.
+        pool: Execution pool type (async, thread, or process).
+        executor: Executor for thread/process pools (None for async pool).
     """
 
     # -------------------------------------------------------------------------
@@ -271,6 +279,8 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         concurrency: int = 5,
         max_retries: int = 3,
         task_ttl: int = 3600,
+        pool: Literal["async", "thread", "process"] = "async",
+        celery_compat: bool = False,
     ) -> None:
         """Initialize the delayed task manager.
 
@@ -279,6 +289,12 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
             concurrency: Maximum number of concurrent task executions. Defaults to 5.
             max_retries: Maximum number of retry attempts for failed tasks. Defaults to 3.
             task_ttl: Time-to-live for tasks in seconds. Defaults to 3600 (1 hour).
+            pool: Execution pool type. Defaults to "async".
+                - "async": asyncio coroutine pool (best for I/O-bound async tasks)
+                - "thread": ThreadPoolExecutor (best for blocking I/O, sync libraries)
+                - "process": ProcessPoolExecutor (best for CPU-intensive tasks)
+            celery_compat: Use Celery Protocol v2 message format for inter opérability.
+                Defaults to False (use AioTasks native format).
         """
         self.task_prefix = prefix
         self.task_running_tasks: dict[str, asyncio.Task] = dict()
@@ -287,79 +303,157 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         self.task_list_name = "{}:{}".format(self.task_prefix, "tasks")
         self.max_retries = max_retries
         self.task_ttl = task_ttl
+        self.pool = pool
+        self.celery_compat = celery_compat
+
+        # Create executor based on pool type
+        self.executor: ThreadPoolExecutor | ProcessPoolExecutor | None = self._create_executor()
 
         # Semaphore for task_concurrency
         self.task_concurrency_sem = asyncio.BoundedSemaphore(self.task_concurrency)
 
+    def _create_executor(self) -> ThreadPoolExecutor | ProcessPoolExecutor | None:
+        """Create executor based on pool type.
+
+        Returns:
+            ThreadPoolExecutor for thread pool, ProcessPoolExecutor for process pool,
+            or None for async pool (uses asyncio.create_task()).
+        """
+        if self.pool == "thread":
+            log.info(f"Creating ThreadPoolExecutor with {self.task_concurrency} workers")
+            return ThreadPoolExecutor(max_workers=self.task_concurrency)
+        elif self.pool == "process":
+            log.info(f"Creating ProcessPoolExecutor with {self.task_concurrency} workers")
+            return ProcessPoolExecutor(max_workers=self.task_concurrency)
+        else:  # async
+            log.info(f"Using asyncio coroutine pool with concurrency={self.task_concurrency}")
+            return None
+
     def task(self, name: str | None = None) -> Callable:
-        """Decorator to register a coroutine function as a delayed task.
+        """Decorator to register a function as a delayed task.
+
+        This decorator supports both async and sync functions depending on pool type:
+        - async pool: requires async def (coroutines)
+        - thread/process pools: supports both async def and def (sync functions)
 
         Args:
             name: Optional custom name for the task. If None, uses function's __name__.
 
         Returns:
-            Decorator function that registers the coroutine as a task and adds
+            Decorator function that registers the function as a task and adds
             a .delay() method for deferred execution.
 
         Example:
+            >>> # Async pool (default) - async def only
             >>> @manager.task()
             >>> async def process_data(data):
             ...     await asyncio.sleep(1)
             ...     return data
+            >>>
+            >>> # Thread/process pool - def or async def
+            >>> @manager.task()
+            >>> def cpu_intensive(n):
+            ...     return sum(i*i for i in range(n))
             >>>
             >>> # Later, queue the task for execution
             >>> await process_data.delay({"key": "value"})
         """
 
         def real_decorator(f: Callable) -> Callable:
-            # Real call to funcion
+            # Determine function name
+            if name:
+                function_name = name
+            else:
+                function_name = f.__name__
+
+            # Validate function type based on pool
+            is_coroutine = asyncio.iscoroutinefunction(f)
+
+            if self.pool == "async" and not is_coroutine:
+                msg = (
+                    f"Task '{function_name}' must be async def for async pool. "
+                    f"Use pool='thread' or pool='process' for sync functions."
+                )
+                raise ValueError(msg)
+
+            if self.pool in ("thread", "process") and is_coroutine:
+                log.warning(
+                    f"Task '{function_name}' is async def but will run in {self.pool} pool. "
+                    f"This may not behave as expected. Consider using a sync function."
+                )
+
+            # Real call to function
             def new_f(*args: Any, **kwargs: Any) -> Any:
                 return f(*args, **kwargs)
 
-            # if function is a coro, add some new functions
-            if asyncio.iscoroutinefunction(f):
-                if name:
-                    function_name = name
-                else:
-                    function_name = f.__name__
+            # Add .delay() method for task queuing
+            new_f.delay = partial(
+                self.context_class,
+                new_f,
+                self.task_list_name,
+                self.poller,
+                function_name,
+                self.celery_compat,
+            )
 
-                new_f.delay = partial(
-                    self.context_class, new_f, self.task_list_name, self.poller, function_name
-                )
-
-                self.task_available_tasks[function_name] = f
+            # Register task
+            self.task_available_tasks[function_name] = f
 
             return new_f
 
         return real_decorator
 
     def add_task(self, function: Callable, name: str | None = None) -> Callable | None:
-        """Programmatically add a coroutine function as a delayed task.
+        """Programmatically add a function as a delayed task.
+
+        This method supports both async and sync functions depending on pool type:
+        - async pool: requires async def (coroutines)
+        - thread/process pools: supports both async def and def (sync functions)
 
         Args:
-            function: The coroutine function to register as a task.
+            function: The function to register as a task.
             name: Optional custom name for the task. If None, uses function's __name__.
 
         Returns:
-            The function object if successfully registered, None if function is not
-            a coroutine.
+            The function object if successfully registered, None if validation fails.
         """
-        if not asyncio.iscoroutinefunction(function):
-            log.warning(
-                f"Function '{function.__name__}' is not a coroutine and can't be added " "as a task"
-            )
-            return
-
-        function.delay = partial(self.context_class, function, self.task_list_name, self.poller)
-
+        # Determine function name
         if name:
             function_name = name
         else:
             function_name = function.__name__
 
+        # Validate function type based on pool
+        is_coroutine = asyncio.iscoroutinefunction(function)
+
+        if self.pool == "async" and not is_coroutine:
+            log.warning(
+                f"Function '{function_name}' is not a coroutine and can't be added to async pool. "
+                f"Use pool='thread' or pool='process' for sync functions."
+            )
+            return None
+
+        if self.pool in ("thread", "process") and is_coroutine:
+            log.warning(
+                f"Function '{function_name}' is async def but will run in {self.pool} pool. "
+                f"This may not behave as expected."
+            )
+
+        # Add .delay() method for task queuing
+        function.delay = partial(
+            self.context_class,
+            function,
+            self.task_list_name,
+            self.poller,
+            function_name,
+            self.celery_compat,
+        )
         function.function_name = function_name
 
+        # Register task
         self.task_available_tasks[function_name] = function
+
+        return function
 
     def _make_tasks_done_delay(self, running_task: str, future: asyncio.Future) -> None:
         """Callback executed when a delayed task completes.
@@ -377,8 +471,13 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
     async def _function_runner(self, fn: Callable, task_id: str, *args: Any, **kwargs: Any) -> None:
         """Execute a task function with retry logic and error handling.
 
+        This method supports multiple execution strategies:
+        - async pool: Execute coroutine directly in event loop
+        - thread pool: Execute function in ThreadPoolExecutor
+        - process pool: Execute function in ProcessPoolExecutor
+
         Args:
-            fn: The coroutine function to execute.
+            fn: The function to execute (async or sync depending on pool).
             task_id: Unique identifier for the task (for logging).
             *args: Positional arguments to pass to the function.
             **kwargs: Keyword arguments to pass to the function.
@@ -389,6 +488,35 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         - NACK on failure (task failed after all retries)
         - Comprehensive error logging
         """
+
+        async def execute_function() -> Any:
+            """Execute the function using the appropriate pool."""
+            if self.executor:
+                # Thread or process pool - use run_in_executor
+                loop = asyncio.get_running_loop()
+
+                # Check if function is async (should not be in thread/process pool)
+                if asyncio.iscoroutinefunction(fn):
+                    # Run async function in executor (not recommended but supported)
+                    log.warning(f"Running async function {fn.__name__} in {self.pool} pool")
+                    # Create a sync wrapper for the async function
+                    import asyncio as _asyncio
+
+                    def _run_async():
+                        return _asyncio.run(fn(*args, **kwargs))
+
+                    return await loop.run_in_executor(self.executor, _run_async)
+                else:
+                    # Normal sync function in executor
+                    # Create partial to bind args/kwargs
+                    from functools import partial as _partial
+
+                    bound_fn = _partial(fn, *args, **kwargs)
+                    return await loop.run_in_executor(self.executor, bound_fn)
+            else:
+                # Async pool - execute coroutine directly
+                return await fn(*args, **kwargs)
+
         # Create a retry decorator dynamically based on max_retries
         retry_decorator = retry(
             stop=stop_after_attempt(self.max_retries),
@@ -397,23 +525,24 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
             reraise=True,
         )
 
-        # Wrap the function with retry logic
-        retrying_fn = retry_decorator(fn)
+        # Wrap the execution function with retry logic
+        retrying_fn = retry_decorator(execute_function)
 
         try:
-            await retrying_fn(*args, **kwargs)
+            await retrying_fn()
             # ACK - Task completed successfully
-            log.info(f"Task {task_id} completed successfully")
+            log.info(f"Task {task_id} completed successfully (pool={self.pool})")
             await self._task_ack(task_id)
         except RetryError as e:
             # NACK - Task failed after all retries
             log.error(
-                f"Task {task_id} failed after {self.max_retries} attempts: {e.last_attempt.exception()}"
+                f"Task {task_id} failed after {self.max_retries} attempts (pool={self.pool}): "
+                f"{e.last_attempt.exception()}"
             )
             await self._task_nack(task_id, e.last_attempt.exception())
         except Exception as e:
             # NACK - Unexpected error
-            log.error(f"Task {task_id} failed with unexpected error: {e}")
+            log.error(f"Task {task_id} failed with unexpected error (pool={self.pool}): {e}")
             await self._task_nack(task_id, e)
 
     async def _task_ack(self, task_id: str) -> None:
@@ -439,15 +568,66 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         # Default implementation - override in backends that support native NACK
         log.debug(f"NACK: Task {task_id} - Error: {error}")
 
+    def _deserialize_task_message(self, raw: bytes) -> dict[str, Any]:
+        """Deserialize task message from either AioTasks or Celery format.
+
+        Supports both:
+        - AioTasks native format (msgpack)
+        - Celery Protocol v2 format (JSON)
+
+        Args:
+            raw: Raw message bytes
+
+        Returns:
+            Normalized task info dict with task_id, function, args, kwargs
+
+        Raises:
+            Exception: If message cannot be deserialized
+        """
+        # Try detecting Celery format first (JSON with specific structure)
+        try:
+            data = json.loads(raw.decode("utf-8"))
+            # Celery v2 has properties, headers, body structure
+            if "headers" in data and "body" in data and "task" in data.get("headers", {}):
+                # Celery Protocol v2 format detected
+                headers = data.get("headers", {})
+                body = data.get("body", {})
+                log.debug("Detected Celery Protocol v2 message")
+                return {
+                    "task_id": headers.get("id"),
+                    "function": headers.get("task"),
+                    "args": body.get("args", []),
+                    "kwargs": body.get("kwargs", {}),
+                }
+        except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
+            pass  # Not Celery format, try AioTasks format
+
+        # Try AioTasks native format (msgpack)
+        try:
+            msg = msgpack.unpackb(raw, raw=False)
+            # AioTasks native format
+            return {
+                "task_id": msg.get("task_id"),
+                "function": msg.get("function"),
+                "args": msg.get("args"),
+                "kwargs": msg.get("kwargs"),
+            }
+        except Exception as e:
+            log.error(f"Failed to deserialize message: {e}")
+            raise
+
     async def listen_tasks(self) -> None:
         """Listen for and execute queued tasks.
 
         This method runs continuously, polling for pending tasks and executing
-        them with concurrency control. Each task is:
+        them with concurrency control. Supports both AioTasks and Celery message formats.
+
+        Each task is:
         1. Retrieved from the pending queue
-        2. Validated (UUID format, function existence)
-        3. Executed with concurrency limits enforced by semaphore
-        4. Tracked until completion
+        2. Deserialized (auto-detects AioTasks or Celery format)
+        3. Validated (UUID format, function existence)
+        4. Executed with concurrency limits enforced by semaphore
+        5. Tracked until completion
         """
         while True:
             raw_data = await self.pending_tasks
@@ -457,11 +637,18 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
             _, raw = raw_data
 
-            msg = msgpack.unpackb(raw, raw=False)
-            args = msg.get("args")
-            kwargs = msg.get("kwargs")
-            task_id = msg.get("task_id")
-            task_function = msg.get("function")
+            # Deserialize message (auto-detects format)
+            try:
+                task_info = self._deserialize_task_message(raw)
+            except Exception as e:
+                log.error(f"Failed to deserialize task message: {e}")
+                self.task_concurrency_sem.release()
+                continue
+
+            args = task_info.get("args")
+            kwargs = task_info.get("kwargs")
+            task_id = task_info.get("task_id")
+            task_function = task_info.get("function")
 
             try:
                 if type(task_id) is int:
@@ -470,12 +657,14 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
                 uuid.UUID(task_id, version=4)
             except ValueError:
                 log.error(f"Task ID '{task_id}' has not valid UUID4 format")
+                self.task_concurrency_sem.release()
                 continue
 
             try:
                 local_task = self.task_available_tasks[task_function]
             except KeyError:
                 log.warning(f"No local task with name '{task_function}'")
+                self.task_concurrency_sem.release()
                 continue
 
             running_task_id = uuid.uuid4().hex
@@ -651,7 +840,8 @@ class AsyncTaskBase(metaclass=abc.ABCMeta):
         1. Stops delayed task polling
         2. Stops topic subscriptions
         3. Cancels all running tasks
-        4. Stops event loops
+        4. Shuts down executors (thread/process pools)
+        5. Stops event loops
 
         Warning:
             This is a destructive operation that will cancel all running tasks.
@@ -667,6 +857,12 @@ class AsyncTaskBase(metaclass=abc.ABCMeta):
             t.cancel()
         for t in all_delay_tasks:
             t.cancel()
+
+        # Shutdown executors if they exist
+        if hasattr(self, "executor") and self.executor:
+            log.info(f"Shutting down {self.pool} pool executor...")
+            self.executor.shutdown(wait=True)
+            log.info(f"{self.pool.capitalize()} pool executor shut down")
 
         # Ensure all the tasks ends
         async def close_delay_loop() -> None:

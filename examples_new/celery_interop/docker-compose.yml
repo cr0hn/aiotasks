@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Redis broker (shared by AioTasks and Celery)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # FastAPI application using AioTasks to send tasks
+  fastapi:
+    build: .
+    command: python fastapi_producer.py
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+
+  # Celery worker processing tasks sent by AioTasks
+  celery-worker:
+    build: .
+    command: celery -A celery_worker worker --loglevel=info --concurrency=4
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+
+  # AioTasks worker (alternative to Celery worker)
+  # Uncomment to run both workers simultaneously
+  # aiotasks-worker:
+  #   build: .
+  #   command: python aiotasks_worker.py
+  #   environment:
+  #     - REDIS_URL=redis://redis:6379/0
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./:/app
+
+  # Flower - Celery monitoring tool (optional)
+  flower:
+    build: .
+    command: celery -A celery_worker flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - celery-worker
+    volumes:
+      - ./:/app

@@ -54,9 +54,11 @@ AioTasks is a **modern, high-performance task queue** built on Python's asyncio.
 
 ## ✨ Features
 
+- **🔗 Celery Interoperability** - Full Celery Protocol v2 support! Send tasks from AioTasks, process with Celery workers (or vice versa)
 - **🎭 Celery-Compatible CLI** - Same syntax, just `aiotasks` instead of `celery`
 - **⚡ Native AsyncIO** - Built from scratch for async/await
 - **🔄 Multiple Backends** - Memory, Redis, RabbitMQ (AMQP), ZeroMQ
+- **🏊 Pool Support** - async (coroutines), thread, or process pools (Celery-like `--pool`)
 - **🔁 Smart Retry Logic** - Exponential backoff with tenacity
 - **📊 Task Acknowledgment** - Reliable ACK/NACK support
 - **⏱️ TTL Support** - Automatic task expiration
@@ -158,6 +160,98 @@ async def send_notification(
     await asyncio.sleep(delay)
     return {"user_id": user_id, "status": "sent"}
 ```
+
+### Pool Support - Choose Your Execution Strategy
+
+**New in v2.3**: AioTasks supports three execution pool types (like Celery's `--pool`):
+
+```python
+# Async pool (default) - for I/O-bound async tasks
+app = AioTasks('myapp', broker='redis://localhost', pool='async')
+
+@app.task()
+async def fetch_data(url: str):
+    await asyncio.sleep(1)  # Non-blocking I/O
+    return data
+
+# Thread pool - for blocking I/O and sync libraries
+app = AioTasks('myapp', broker='redis://localhost', pool='thread', concurrency=20)
+
+@app.task()
+def blocking_io(file_path: str):
+    import time
+    time.sleep(1)  # Blocking call OK in thread pool
+    return result
+
+# Process pool - for CPU-intensive tasks
+app = AioTasks('myapp', broker='redis://localhost', pool='process', concurrency=4)
+
+@app.task()
+def cpu_intensive(n: int):
+    # True parallel execution (bypasses GIL)
+    return sum(i*i for i in range(n))
+```
+
+**CLI:**
+```bash
+# Run worker with specific pool type
+aiotasks -A app worker --pool=async -c 10    # Default (coroutines)
+aiotasks -A app worker --pool=thread -c 20   # Thread pool
+aiotasks -A app worker --pool=process -c 4   # Process pool
+```
+
+**When to use each:**
+- **async**: I/O-bound async tasks (DB queries, API calls, file I/O)
+- **thread**: Blocking I/O, legacy sync code, sync libraries
+- **process**: CPU-intensive tasks, bypasses GIL for true parallelism
+
+### 🔗 Celery Interoperability
+
+**NEW in v2.3**: Full Celery Protocol v2 compatibility! AioTasks can now interoperate with Celery workers:
+
+```python
+# Enable Celery compatibility mode
+app = AioTasks(
+    'myapp',
+    broker='redis://localhost:6379/0',
+    celery_compat=True,  # ✨ Enable Celery Protocol v2 format
+)
+
+@app.task()
+async def send_email(to: str, subject: str):
+    """This task can be processed by BOTH AioTasks and Celery workers!"""
+    return {"status": "sent", "to": to}
+
+# Queue the task - sends in Celery format
+await send_email.delay("user@example.com", "Hello")
+```
+
+**Why use this?**
+
+- 🚀 **FastAPI + Celery workers**: Use AioTasks in your modern async API, keep existing Celery workers
+- 🔄 **Gradual migration**: Migrate from Celery to AioTasks incrementally with zero downtime
+- 🏗️ **Mixed deployments**: Run both Celery and AioTasks workers processing the same queue
+- 🎯 **Best tool for each job**: Use Celery for CPU tasks, AioTasks for async I/O
+
+**Example: FastAPI with Celery workers**
+
+```python
+# FastAPI app using AioTasks (new code)
+from fastapi import FastAPI
+from aiotasks import AioTasks
+
+tasks = AioTasks('myapp', broker='redis://localhost', celery_compat=True)
+
+@app.post("/process")
+async def api_endpoint(data: dict):
+    await process_data.delay(data)  # Sent in Celery format
+    return {"status": "processing"}
+
+# Existing Celery worker - NO CHANGES NEEDED!
+# celery -A worker worker --loglevel=info
+```
+
+📚 **[Full Celery Interoperability Guide →](docs/celery_interoperability.md)**
 
 ### Integration with FastAPI
 

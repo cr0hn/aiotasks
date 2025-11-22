@@ -35,6 +35,7 @@ class AioTasks:
         name: Application name (like Celery's app name)
         broker: Broker DSN (redis://, amqp://, zmq://, memory://)
         backend: Result backend DSN (optional, for future result storage)
+        pool: Execution pool type (async, thread, or process)
         **config: Additional configuration options
 
     Examples:
@@ -49,6 +50,15 @@ class AioTasks:
         >>>
         >>> # ZeroMQ backend (high performance)
         >>> app = AioTasks('myapp', broker='zmq://localhost:5555')
+        >>>
+        >>> # Thread pool for blocking I/O tasks
+        >>> app = AioTasks('myapp', broker='redis://localhost:6379/0', pool='thread')
+        >>>
+        >>> # Process pool for CPU-intensive tasks
+        >>> app = AioTasks('myapp', broker='redis://localhost:6379/0', pool='process', concurrency=4)
+        >>>
+        >>> # Celery compatibility - interoperate with Celery workers
+        >>> app = AioTasks('myapp', broker='redis://localhost:6379/0', celery_compat=True)
     """
 
     def __init__(
@@ -60,6 +70,8 @@ class AioTasks:
         concurrency: int = 5,
         max_retries: int = 3,
         task_ttl: int = 3600,
+        pool: str = "async",
+        celery_compat: bool = False,
         **config: Any,
     ) -> None:
         """Initialize AioTasks application.
@@ -71,11 +83,15 @@ class AioTasks:
             concurrency: Max concurrent tasks
             max_retries: Max retry attempts per task
             task_ttl: Task time-to-live in seconds
+            pool: Execution pool type (async, thread, or process)
+            celery_compat: Enable Celery Protocol v2 compatibility for interoperability
             **config: Additional config options
         """
         self.name = name
         self.broker_url = broker
         self.backend_url = backend
+        self.pool = pool
+        self.celery_compat = celery_compat
         self.conf = config
 
         # Create underlying manager
@@ -85,9 +101,14 @@ class AioTasks:
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
+            celery_compat=celery_compat,
         )
 
-        log.info(f"AioTasks app '{name}' initialized with broker: {broker}")
+        compat_msg = " (Celery-compatible)" if celery_compat else ""
+        log.info(
+            f"AioTasks app '{name}' initialized with broker: {broker}, pool: {pool}{compat_msg}"
+        )
 
     def task(self, name: str | None = None, **options: Any) -> Callable:
         """Decorator to register async functions as tasks (Celery-style).
