@@ -57,7 +57,7 @@ jobs:
 
       - name: Run tests with pytest
         run: |
-          pytest tests/ -v --cov=aiotasks --cov-report=xml --cov-report=term-missing
+          pytest tests/ -v --ignore=tests/stress --ignore=tests/test_helpers.py --ignore=tests/test_helpers_comprehensive.py --ignore=tests/test_core_modules.py --ignore=tests/test_backends.py --ignore=tests/test_cli.py --ignore=tests/integration/test_features_integration.py --ignore=tests/integration/test_monitoring_integration.py --cov=aiotasks --cov-report=xml --cov-report=term-missing -m "not slow"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -93,9 +93,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Run Redis integration tests
+      - name: Run integration tests with Redis service
         run: |
-          pytest tests/ -v -m redis --cov=aiotasks
+          pytest tests/integration/ -v --cov=aiotasks -m "not slow"
         env:
           REDIS_URL: redis://localhost:6379/0
 

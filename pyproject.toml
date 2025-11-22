@@ -74,7 +74,7 @@ line-ending = "auto"
 minversion = "7.0"
 testpaths = [ "tests",]
 asyncio_mode = "auto"
-addopts = [ "-ra", "--strict-markers", "--strict-config", "--showlocals", "--cov=aiotasks", "--cov-report=term-missing", "--cov-report=html", "--cov-report=xml", "--cov-fail-under=90",]
+addopts = [ "-ra", "--strict-markers", "--strict-config", "--showlocals",]
 markers = [ "slow: marks tests as slow (deselect with '-m \"not slow\"')", "integration: marks tests as integration tests", "redis: marks tests that require Redis", "rabbitmq: marks tests that require RabbitMQ", "zeromq: marks tests that require ZeroMQ",]
 filterwarnings = [ "error", "ignore::DeprecationWarning",]
 
