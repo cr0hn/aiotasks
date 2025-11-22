@@ -132,4 +132,4 @@ ENV/
 # Rope project settings
 .ropeproject
 .idea/
-*.rdb
+*.rdbcoverage.json
