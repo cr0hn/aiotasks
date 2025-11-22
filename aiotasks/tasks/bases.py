@@ -20,6 +20,11 @@ try:
 except ImportError:  # pragma: no cover
     import msgpack
 
+try:
+    import ujson as json
+except ImportError:
+    import json
+
 from tenacity import (
     RetryError,
     retry,
@@ -275,6 +280,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         max_retries: int = 3,
         task_ttl: int = 3600,
         pool: Literal["async", "thread", "process"] = "async",
+        celery_compat: bool = False,
     ) -> None:
         """Initialize the delayed task manager.
 
@@ -287,6 +293,8 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
                 - "async": asyncio coroutine pool (best for I/O-bound async tasks)
                 - "thread": ThreadPoolExecutor (best for blocking I/O, sync libraries)
                 - "process": ProcessPoolExecutor (best for CPU-intensive tasks)
+            celery_compat: Use Celery Protocol v2 message format for inter opérability.
+                Defaults to False (use AioTasks native format).
         """
         self.task_prefix = prefix
         self.task_running_tasks: dict[str, asyncio.Task] = dict()
@@ -296,6 +304,7 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         self.max_retries = max_retries
         self.task_ttl = task_ttl
         self.pool = pool
+        self.celery_compat = celery_compat
 
         # Create executor based on pool type
         self.executor: ThreadPoolExecutor | ProcessPoolExecutor | None = self._create_executor()
@@ -379,7 +388,12 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
             # Add .delay() method for task queuing
             new_f.delay = partial(
-                self.context_class, new_f, self.task_list_name, self.poller, function_name
+                self.context_class,
+                new_f,
+                self.task_list_name,
+                self.poller,
+                function_name,
+                self.celery_compat,
             )
 
             # Register task
@@ -426,7 +440,14 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
             )
 
         # Add .delay() method for task queuing
-        function.delay = partial(self.context_class, function, self.task_list_name, self.poller)
+        function.delay = partial(
+            self.context_class,
+            function,
+            self.task_list_name,
+            self.poller,
+            function_name,
+            self.celery_compat,
+        )
         function.function_name = function_name
 
         # Register task
@@ -547,15 +568,66 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         # Default implementation - override in backends that support native NACK
         log.debug(f"NACK: Task {task_id} - Error: {error}")
 
+    def _deserialize_task_message(self, raw: bytes) -> dict[str, Any]:
+        """Deserialize task message from either AioTasks or Celery format.
+
+        Supports both:
+        - AioTasks native format (msgpack)
+        - Celery Protocol v2 format (JSON)
+
+        Args:
+            raw: Raw message bytes
+
+        Returns:
+            Normalized task info dict with task_id, function, args, kwargs
+
+        Raises:
+            Exception: If message cannot be deserialized
+        """
+        # Try detecting Celery format first (JSON with specific structure)
+        try:
+            data = json.loads(raw.decode("utf-8"))
+            # Celery v2 has properties, headers, body structure
+            if "headers" in data and "body" in data and "task" in data.get("headers", {}):
+                # Celery Protocol v2 format detected
+                headers = data.get("headers", {})
+                body = data.get("body", {})
+                log.debug("Detected Celery Protocol v2 message")
+                return {
+                    "task_id": headers.get("id"),
+                    "function": headers.get("task"),
+                    "args": body.get("args", []),
+                    "kwargs": body.get("kwargs", {}),
+                }
+        except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
+            pass  # Not Celery format, try AioTasks format
+
+        # Try AioTasks native format (msgpack)
+        try:
+            msg = msgpack.unpackb(raw, raw=False)
+            # AioTasks native format
+            return {
+                "task_id": msg.get("task_id"),
+                "function": msg.get("function"),
+                "args": msg.get("args"),
+                "kwargs": msg.get("kwargs"),
+            }
+        except Exception as e:
+            log.error(f"Failed to deserialize message: {e}")
+            raise
+
     async def listen_tasks(self) -> None:
         """Listen for and execute queued tasks.
 
         This method runs continuously, polling for pending tasks and executing
-        them with concurrency control. Each task is:
+        them with concurrency control. Supports both AioTasks and Celery message formats.
+
+        Each task is:
         1. Retrieved from the pending queue
-        2. Validated (UUID format, function existence)
-        3. Executed with concurrency limits enforced by semaphore
-        4. Tracked until completion
+        2. Deserialized (auto-detects AioTasks or Celery format)
+        3. Validated (UUID format, function existence)
+        4. Executed with concurrency limits enforced by semaphore
+        5. Tracked until completion
         """
         while True:
             raw_data = await self.pending_tasks
@@ -565,11 +637,18 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
 
             _, raw = raw_data
 
-            msg = msgpack.unpackb(raw, raw=False)
-            args = msg.get("args")
-            kwargs = msg.get("kwargs")
-            task_id = msg.get("task_id")
-            task_function = msg.get("function")
+            # Deserialize message (auto-detects format)
+            try:
+                task_info = self._deserialize_task_message(raw)
+            except Exception as e:
+                log.error(f"Failed to deserialize task message: {e}")
+                self.task_concurrency_sem.release()
+                continue
+
+            args = task_info.get("args")
+            kwargs = task_info.get("kwargs")
+            task_id = task_info.get("task_id")
+            task_function = task_info.get("function")
 
             try:
                 if type(task_id) is int:
@@ -578,12 +657,14 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
                 uuid.UUID(task_id, version=4)
             except ValueError:
                 log.error(f"Task ID '{task_id}' has not valid UUID4 format")
+                self.task_concurrency_sem.release()
                 continue
 
             try:
                 local_task = self.task_available_tasks[task_function]
             except KeyError:
                 log.warning(f"No local task with name '{task_function}'")
+                self.task_concurrency_sem.release()
                 continue
 
             running_task_id = uuid.uuid4().hex
