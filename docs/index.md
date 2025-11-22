@@ -1,6 +1,6 @@
 # AioTasks
 
-**Modern async task queue for Python 3.11+** - A Celery-like task manager that distributes asyncio coroutines.
+**Modern async task queue for Python 3.12+** - A Celery-like task manager that distributes asyncio coroutines.
 
 [![PyPI version](https://badge.fury.io/py/aiotasks.svg)](https://pypi.org/project/aiotasks/)
 [![Python versions](https://img.shields.io/pypi/pyversions/aiotasks.svg)](https://pypi.org/project/aiotasks/)
@@ -20,7 +20,7 @@ AioTasks is a modern, high-performance task queue built on Python's asyncio. If 
 - 📊 **Task Acknowledgment**: ACK/NACK support for reliable processing
 - ⏱️ **TTL Support**: Automatic task expiration
 - 🎯 **Type Safe**: Complete type hints with modern Python syntax
-- 🐍 **Python 3.11+**: Uses latest Python features (match/case, StrEnum, PEP 604)
+- 🐍 **Python 3.12+**: Uses latest Python features (match/case, StrEnum, PEP 604)
 
 ## Quick Example
 
@@ -52,7 +52,7 @@ asyncio.run(main())
 ### vs Celery
 
 - **Native Async**: No need for worker processes, everything is coroutines
-- **Modern Python**: Uses Python 3.11+ features like pattern matching
+- **Modern Python**: Uses Python 3.12+ features like pattern matching
 - **Simpler**: No need for separate broker processes in development (memory backend)
 - **Type Safe**: Full type hints throughout
 
@@ -69,13 +69,13 @@ asyncio.run(main())
 pip install aiotasks
 
 # With Redis support
-pip install aiotasks[redis]
+pip install aiotasks
 
 # With RabbitMQ support
-pip install aiotasks[amqp]
+pip install aiotasks
 
 # With all features
-pip install aiotasks[all]
+pip install aiotasks
 ```
 
 ## Next Steps

@@ -25,7 +25,7 @@ This directory contains comprehensive examples of integrating AioTasks with Fast
 
 ```bash
 # Install dependencies
-pip install aiotasks[fastapi,redis]
+pip install aiotasks
 
 # Terminal 1: Start Redis
 docker run -d -p 6379:6379 redis:alpine
@@ -76,7 +76,7 @@ curl http://localhost:8000/health
 
 ```bash
 # Install dependencies
-pip install aiotasks[fastapi,redis]
+pip install aiotasks
 
 # Start Redis
 docker run -d -p 6379:6379 redis:alpine
@@ -388,7 +388,7 @@ docker-compose ps
 
 ### Performance
 - Use `uvloop` (included by default with aiotasks)
-- Enable `ujson` for faster JSON: `pip install aiotasks[performance]`
+- Enable `ujson` for faster JSON: `pip install aiotasks`
 - Use connection pooling for Redis
 - Profile your tasks to find bottlenecks
 - Consider task priorities for mixed workloads

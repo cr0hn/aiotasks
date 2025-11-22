@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2024-11-22
+
+### ⚠️  BREAKING CHANGES
+
+- **Python 3.12+ Required**: Updated minimum Python version from 3.11 to 3.12
+- **Full Installation by Default**: `pip install aiotasks` now installs ALL features (Redis, AMQP, ZeroMQ, FastAPI, ujson, uvloop)
+
+### Changed
+
+#### Installation
+- **Simplified Installation**: Single command installs everything
+  - `pip install aiotasks` now includes all brokers (Redis, AMQP, ZeroMQ)
+  - FastAPI integration included by default
+  - Performance optimizations (uvloop, ujson) included by default
+  - No more optional dependencies - everything is batteries-included!
+  - Legacy `[all]` extra kept for compatibility (now empty)
+
+#### Python Version
+- **Requires Python >=3.12** (was >=3.11)
+- Updated all documentation to reference Python 3.12+
+- Updated CI/CD workflows to use Python 3.12
+- Updated tooling configuration (ruff, mypy, pylint) for Python 3.12
+- Removed Python 3.11 from test matrix
+- Test matrix now: Python 3.12, 3.13 on Ubuntu, macOS, Windows
+
+#### CI/CD
+- **Concurrency Control**: Only one publish workflow can run at a time
+  - Previous publish runs are automatically canceled when a new one starts
+  - Prevents conflicting releases and race conditions
+
+#### Documentation
+- Updated README.md: Simplified installation section
+- Updated all examples: Changed `aiotasks[...]` to `aiotasks`
+- Updated FastAPI integration guide
+- Updated 10+ documentation and example files
+
+### Why These Changes?
+
+**Simpler for Users**: No need to figure out which extras to install - everything works out of the box
+
+**Better Developer Experience**: Install once, use all features
+
+**Production Ready**: All production-critical dependencies (Redis, uvloop, etc.) included by default
+
+**Modern Python**: Take advantage of Python 3.12+ features (type aliases, improved pattern matching, etc.)
+
+### Migration Guide
+
+#### From v2.1.0 to v2.2.0
+
+**Installation**:
+```bash
+# Before (v2.1.0)
+pip install aiotasks[redis,fastapi]
+
+# After (v2.2.0) - everything included!
+pip install aiotasks
+```
+
+**Python Version**:
+- Ensure you're using Python 3.12 or higher
+- Update your project's `requires-python` if needed
+
+**Dependencies**:
+- All optional dependencies are now included
+- Remove any `aiotasks[...]` references from requirements.txt
+- Simply use `aiotasks` everywhere
+
 ## [2.1.0] - 2024-11-22
 
 ### Added
@@ -148,7 +216,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Pydantic Migration**: Migrated from deprecated booby to pydantic
-- **Python Requirement**: Now requires Python >=3.11
+- **Python Requirement**: Now requires Python >=3.12
 - **msgpack Compatibility**: Updated for msgpack 1.0+
 
 ### Fixed

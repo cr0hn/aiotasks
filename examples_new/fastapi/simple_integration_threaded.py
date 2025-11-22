@@ -8,7 +8,7 @@ This example shows how to run workers in the same process as the API
 using a separate thread. Useful for quick testing without running separate workers.
 
 Install:
-    pip install aiotasks[fastapi,redis]
+    pip install aiotasks
 
 Run:
     # Terminal 1: Start Redis

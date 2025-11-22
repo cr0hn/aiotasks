@@ -105,7 +105,7 @@ async def risky_operation(value: int) -> int:
 
 ## Modern Python Features
 
-AioTasks supports modern Python 3.11+ features:
+AioTasks supports modern Python 3.12+ features:
 
 ```python
 from enum import StrEnum, auto

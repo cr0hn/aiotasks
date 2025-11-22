@@ -12,7 +12,7 @@
 
 ```bash
 # Install with FastAPI and Redis support
-pip install aiotasks[fastapi,redis]
+pip install aiotasks
 ```
 
 ### Step 2: Create Your Application

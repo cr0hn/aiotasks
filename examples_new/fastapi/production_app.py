@@ -5,7 +5,7 @@ This example shows how to run FastAPI and workers separately for production.
 This architecture allows independent scaling of API servers and task workers.
 
 Install:
-    pip install aiotasks[fastapi,redis]
+    pip install aiotasks
 
 Setup:
     # Start Redis

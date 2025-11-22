@@ -7,7 +7,7 @@ ALTERNATIVE: For development, see simple_integration_threaded.py
 This example shows the recommended way: API sends tasks, workers run separately.
 
 Install:
-    pip install aiotasks[fastapi,redis]
+    pip install aiotasks
 
 Run:
     # Terminal 1: Start Redis
