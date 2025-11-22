@@ -1,9 +1,12 @@
 # FastAPI Integration Guide
 
-!!! success "Ultra-Simple Integration"
-    Integrating AioTasks with FastAPI requires just **3 steps** and works seamlessly with FastAPI's async nature.
+!!! success "Recommended: Separate Workers"
+    **Best practice:** Run your FastAPI API and workers in separate processes. The API queues tasks, workers process them.
 
-## Quick Start
+!!! warning "Don't call `.run()` in async context"
+    **Never** call `tasks.run()` inside an async function or event handler. If you need in-process workers, run them in a separate thread (see development pattern below).
+
+## Quick Start (Recommended)
 
 ### Step 1: Install Dependencies
 
@@ -28,60 +31,49 @@ tasks = AioTasks("api_tasks", broker="redis://localhost:6379/0")
 # Define background tasks
 @tasks.task()
 async def send_welcome_email(email: str, name: str):
-    """Send welcome email in the background."""
+    """Send welcome email - executed by separate workers."""
     await asyncio.sleep(2)  # Simulate email sending
     print(f"📧 Welcome email sent to {name} ({email})")
     return {"status": "sent", "email": email}
 
 @tasks.task()
 async def process_payment(payment_id: int, amount: float):
-    """Process payment asynchronously."""
+    """Process payment - executed by separate workers."""
     await asyncio.sleep(3)  # Simulate payment processing
     print(f"💳 Payment {payment_id} processed: ${amount}")
     return {"payment_id": payment_id, "status": "completed"}
 
-# Lifecycle management
-@api.on_event("startup")
-async def startup():
-    """Start task worker on app startup."""
-    tasks.run()
-
-@api.on_event("shutdown")
-async def shutdown():
-    """Gracefully stop task worker on shutdown."""
-    tasks.stop()
-
-# API endpoints
+# API endpoints - they just queue tasks!
 @api.post("/register")
 async def register_user(email: str, name: str):
-    """Register user and send welcome email in background."""
-    # Queue task - returns immediately
+    """Register user and queue welcome email."""
+    # Queue task - workers will process it
     await send_welcome_email.delay(email, name)
-    return {"status": "registered", "message": "Welcome email will be sent"}
+    return {"status": "registered", "message": "Welcome email queued"}
 
 @api.post("/payments")
 async def create_payment(payment_id: int, amount: float):
-    """Create payment and process in background."""
-    # Heavy processing happens asynchronously
+    """Create payment and queue processing."""
+    # Queue task - workers will process it
     await process_payment.delay(payment_id, amount)
-    return {"payment_id": payment_id, "status": "processing"}
+    return {"payment_id": payment_id, "status": "queued"}
 
 @api.get("/health")
 async def health():
     """Health check endpoint."""
-    return {"status": "healthy", "tasks": "running"}
+    return {"status": "healthy"}
 ```
 
 ### Step 3: Run Your Application
 
 ```bash
-# Start Redis (required for this example)
+# Terminal 1: Start Redis
 docker run -d -p 6379:6379 redis:alpine
 
-# Run the FastAPI app
+# Terminal 2: Run the FastAPI app (API only, no workers)
 uvicorn app:api --reload
 
-# In another terminal, optionally run dedicated workers
+# Terminal 3: Run workers separately (recommended!)
 aiotasks -A app.tasks worker -l INFO -c 10
 ```
 
@@ -100,44 +92,15 @@ curl http://localhost:8000/health
 
 ## Architecture Patterns
 
-### Pattern 1: In-Process Worker (Development)
-
-**Best for:** Development, testing, low-traffic apps
-
-```python
-from fastapi import FastAPI
-from aiotasks import AioTasks
-
-api = FastAPI()
-tasks = AioTasks("myapp", broker="redis://localhost")
-
-@tasks.task()
-async def background_work():
-    pass
-
-@api.on_event("startup")
-async def startup():
-    tasks.run()  # Worker runs inside the FastAPI process
-```
-
-**Pros:**
-- ✅ Simple setup
-- ✅ Single process
-- ✅ Easy debugging
-
-**Cons:**
-- ❌ Not scalable
-- ❌ Tasks compete with API for resources
-
-### Pattern 2: Separate Workers (Production)
+### Pattern 1: Separate Workers (Production - Recommended)
 
 **Best for:** Production, high-traffic, scalability
 
 ```python
-# app.py - FastAPI application
 from fastapi import FastAPI
 from aiotasks import AioTasks
 
+# API only queues tasks - workers run separately
 api = FastAPI()
 tasks = AioTasks("myapp", broker="redis://production:6379/0")
 
@@ -152,7 +115,7 @@ async def process_data(data: dict):
     await heavy_processing.delay(data)
     return {"status": "queued"}
 
-# NO @api.on_event("startup") - workers run separately!
+# NO startup/shutdown needed - workers run separately!
 ```
 
 ```bash
@@ -168,22 +131,73 @@ aiotasks -A app.tasks worker -c 20  # Another worker
 - ✅ Highly scalable
 - ✅ Independent scaling of API and workers
 - ✅ Better resource utilization
+- ✅ Production-ready
 
 **Cons:**
-- ❌ More complex deployment
 - ❌ Requires message broker (Redis/RabbitMQ)
+
+### Pattern 2: In-Process Worker with Threading (Development)
+
+**Best for:** Development, testing, quick prototyping
+
+!!! warning "Development Only"
+    Workers must run in a separate thread, not in async context!
+
+```python
+import threading
+from fastapi import FastAPI
+from aiotasks import AioTasks
+
+api = FastAPI()
+tasks = AioTasks("myapp", broker="redis://localhost", concurrency=5)
+
+@tasks.task()
+async def background_work(data: dict):
+    """Quick background task."""
+    pass
+
+@api.on_event("startup")
+async def startup():
+    # ⚠️ tasks.run() blocks, so it MUST run in a separate thread!
+    def run_worker():
+        tasks.run()  # This blocks
+
+    worker_thread = threading.Thread(target=run_worker, daemon=True)
+    worker_thread.start()
+
+@api.on_event("shutdown")
+async def shutdown():
+    tasks.stop()
+
+@api.post("/process")
+async def process_data(data: dict):
+    await background_work.delay(data)
+    return {"status": "queued"}
+```
+
+**Pros:**
+- ✅ Simple setup
+- ✅ Single process
+- ✅ Easy debugging
+- ✅ Good for development
+
+**Cons:**
+- ❌ Not scalable (single worker thread)
+- ❌ Worker competes with API for resources
+- ❌ Not recommended for production
 
 ### Pattern 3: Hybrid Approach
 
 **Best for:** Mixed workloads (quick + heavy tasks)
 
 ```python
+import threading
 from fastapi import FastAPI
 from aiotasks import AioTasks
 
 api = FastAPI()
 
-# Quick tasks - processed in-app
+# Quick tasks - processed in-app (via thread)
 quick_tasks = AioTasks("quick", broker="redis://localhost", concurrency=5)
 
 # Heavy tasks - processed by dedicated workers
@@ -191,7 +205,7 @@ heavy_tasks = AioTasks("heavy", broker="redis://localhost")
 
 @quick_tasks.task()
 async def send_notification(user_id: int):
-    """Quick task - runs in-app."""
+    """Quick task - runs in-app worker thread."""
     await asyncio.sleep(0.5)
 
 @heavy_tasks.task()
@@ -201,7 +215,16 @@ async def generate_report(report_id: int):
 
 @api.on_event("startup")
 async def startup():
-    quick_tasks.run()  # Only quick tasks run in-app
+    # Quick tasks run in a thread
+    def run_quick_worker():
+        quick_tasks.run()
+
+    worker_thread = threading.Thread(target=run_quick_worker, daemon=True)
+    worker_thread.start()
+
+@api.on_event("shutdown")
+async def shutdown():
+    quick_tasks.stop()
 
 @api.post("/notify/{user_id}")
 async def notify(user_id: int):

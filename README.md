@@ -176,60 +176,94 @@ async def send_notification(
 
 ### Integration with FastAPI
 
-**Ultra-simple integration** - Just 3 steps!
+**Recommended approach** - API sends tasks, workers run separately:
 
 ```python
 from fastapi import FastAPI
 from aiotasks import AioTasks
-import asyncio
 
 # Step 1: Create FastAPI app and AioTasks instance
 api = FastAPI()
-tasks = AioTasks("api_tasks", broker="redis://localhost")
+tasks = AioTasks("api_tasks", broker="redis://localhost:6379/0")
 
 # Step 2: Define background tasks
 @tasks.task()
 async def send_welcome_email(email: str, name: str):
-    """This runs in the background, outside the request/response cycle."""
-    await asyncio.sleep(2)  # Simulate email sending
+    """This will be executed by separate workers."""
+    await asyncio.sleep(2)
     print(f"📧 Welcome email sent to {name} ({email})")
     return {"status": "sent", "email": email}
 
 @tasks.task()
 async def process_order(order_id: int, user_id: int):
-    """Heavy processing that doesn't block the API response."""
-    await asyncio.sleep(5)  # Simulate order processing
+    """Heavy processing executed by workers."""
+    await asyncio.sleep(5)
     print(f"✅ Order {order_id} processed for user {user_id}")
     return {"order_id": order_id, "status": "completed"}
 
-# Step 3: Start task worker on app startup
-@api.on_event("startup")
-async def startup():
-    tasks.run()  # Start processing background tasks
-
-@api.on_event("shutdown")
-async def shutdown():
-    tasks.stop()  # Graceful shutdown
-
-# Your API endpoints - they respond instantly!
+# Step 3: API endpoints - they just queue tasks!
 @api.post("/register")
 async def register_user(email: str, name: str):
-    # Queue the task and return immediately
+    # Queue task - workers will process it
     await send_welcome_email.delay(email, name)
-    return {"status": "registered", "message": "Welcome email will be sent"}
+    return {"status": "registered", "message": "Email will be sent"}
 
 @api.post("/orders")
 async def create_order(order_id: int, user_id: int):
-    # Heavy processing happens in background
+    # Queue task - workers will process it
     await process_order.delay(order_id, user_id)
     return {"order_id": order_id, "status": "processing"}
 ```
 
-**Why this works:**
-- ✅ **No blocking** - API responds instantly while tasks run in background
-- ✅ **Simple** - Just `.delay()` to queue tasks
-- ✅ **Scalable** - Run multiple workers with `aiotasks -A myapp worker -c 20`
-- ✅ **Production ready** - Use Redis broker for distributed processing
+**Run it:**
+```bash
+# Terminal 1: Start Redis
+docker run -d -p 6379:6379 redis:alpine
+
+# Terminal 2: Run FastAPI (API only, no workers)
+uvicorn app:api --reload
+
+# Terminal 3: Run workers separately (recommended for production)
+aiotasks -A app.tasks worker -l INFO -c 10
+```
+
+**Alternative: In-process worker (development only)**
+
+If you need workers in the same process, run them in a separate thread:
+
+```python
+import threading
+from fastapi import FastAPI
+from aiotasks import AioTasks
+
+api = FastAPI()
+tasks = AioTasks("api_tasks", broker="redis://localhost")
+
+@tasks.task()
+async def background_task(data: str):
+    # Process in background
+    pass
+
+@api.on_event("startup")
+async def startup():
+    # Run worker in a separate thread, NOT in the async context
+    def run_worker():
+        tasks.run()  # This blocks, so it must run in a thread
+
+    worker_thread = threading.Thread(target=run_worker, daemon=True)
+    worker_thread.start()
+
+@api.post("/process")
+async def process(data: str):
+    await background_task.delay(data)
+    return {"status": "queued"}
+```
+
+**Why separate workers?**
+- ✅ **Scalable** - Run multiple workers: `aiotasks worker -c 20`
+- ✅ **Reliable** - API and workers can restart independently
+- ✅ **Production-ready** - Standard architecture for async task queues
+- ✅ **Resource isolation** - Workers don't compete with API for resources
 
 **Install with FastAPI support:**
 ```bash

@@ -2,22 +2,77 @@
 
 This directory contains comprehensive examples of integrating AioTasks with FastAPI, from simple development setups to production-ready deployments.
 
+!!! warning "Important"
+    **Never** call `tasks.run()` directly in an async function! Use separate workers or threading (see examples below).
+
 ## 📋 Examples Overview
 
-| Example | Use Case | Complexity | Best For |
-|---------|----------|------------|----------|
-| `simple_integration.py` | In-process workers | ⭐ Simple | Learning, development, low traffic |
-| `basic_app.py` | Lifespan integration | ⭐⭐ Medium | Development with proper lifecycle |
-| `production_app.py` | Separate workers | ⭐⭐⭐ Advanced | Production, high traffic, scaling |
-| `docker-compose.yml` | Docker deployment | ⭐⭐⭐ Advanced | Production deployment |
+| Example | Workers | Complexity | Best For |
+|---------|---------|------------|----------|
+| `simple_integration.py` | **Separate** (recommended) | ⭐ Simple | Learning, production pattern |
+| `simple_integration_threaded.py` | In-process (thread) | ⭐⭐ Medium | Development/testing only |
+| `basic_app.py` | Lifespan integration | ⭐⭐ Medium | Advanced lifecycle management |
+| `production_app.py` | **Separate** (production) | ⭐⭐⭐ Advanced | Production, scaling, priorities |
+| `docker-compose.yml` | Docker deployment | ⭐⭐⭐ Advanced | Production containers |
 
 ## 🚀 Quick Start
 
-### 1. Simple Integration (Recommended for Learning)
+### 1. Separate Workers (Recommended)
 
 **File:** `simple_integration.py`
 
-The simplest way to integrate AioTasks with FastAPI. Workers run inside the FastAPI process.
+✅ **Best practice:** API queues tasks, workers process them in separate processes.
+
+```bash
+# Install dependencies
+pip install aiotasks[fastapi,redis]
+
+# Terminal 1: Start Redis
+docker run -d -p 6379:6379 redis:alpine
+
+# Terminal 2: Run FastAPI (API only)
+uvicorn simple_integration:api --reload
+
+# Terminal 3: Run workers separately
+aiotasks -A simple_integration.tasks worker -l INFO -c 10
+```
+
+**Test it:**
+```bash
+# Register a user (workers process it)
+curl -X POST "http://localhost:8000/register?email=user@example.com&name=John"
+
+# Create an order (workers process it)
+curl -X POST "http://localhost:8000/orders?order_id=123&user_id=1"
+
+# Check health
+curl http://localhost:8000/health
+```
+
+**Architecture:**
+```
+┌──────────────┐               ┌──────────────┐
+│ FastAPI API  │               │   Workers    │
+│ (queues only)│               │ (process)    │
+└──────┬───────┘               └──────┬───────┘
+       │                              │
+       └────────► Redis ◄─────────────┘
+```
+
+**Pros:**
+- ✅ Production-ready pattern
+- ✅ Scalable (add more workers)
+- ✅ Resource isolation
+- ✅ Independent restarts
+
+**Cons:**
+- ❌ Requires running workers separately
+
+### 1b. In-Process Worker with Threading (Development Only)
+
+**File:** `simple_integration_threaded.py`
+
+⚠️ **Development only:** Workers run in same process via threading.
 
 ```bash
 # Install dependencies
@@ -26,23 +81,8 @@ pip install aiotasks[fastapi,redis]
 # Start Redis
 docker run -d -p 6379:6379 redis:alpine
 
-# Run the app
-python simple_integration.py
-
-# Or with uvicorn
-uvicorn simple_integration:api --reload
-```
-
-**Test it:**
-```bash
-# Register a user (email sent in background)
-curl -X POST "http://localhost:8000/register?email=user@example.com&name=John"
-
-# Create an order (processed in background)
-curl -X POST "http://localhost:8000/orders?order_id=123&user_id=1"
-
-# Check health
-curl http://localhost:8000/health
+# Run the app (API + worker in same process)
+python simple_integration_threaded.py
 ```
 
 **Architecture:**
@@ -53,7 +93,7 @@ curl http://localhost:8000/health
 │  │ API Endpoints          │ │
 │  └────────────────────────┘ │
 │  ┌────────────────────────┐ │
-│  │ Task Workers (5)       │ │
+│  │ Worker Thread          │ │
 │  └────────────────────────┘ │
 └─────────────────────────────┘
          ↓ ↑
@@ -63,13 +103,14 @@ curl http://localhost:8000/health
 ```
 
 **Pros:**
-- ✅ Simple setup
+- ✅ Simple for quick testing
+- ✅ Single process
 - ✅ Easy debugging
-- ✅ Perfect for development
 
 **Cons:**
-- ❌ Limited scalability
-- ❌ API and workers compete for resources
+- ❌ Not scalable
+- ❌ Not recommended for production
+- ❌ Worker competes with API for resources
 
 ### 2. Production Deployment
 
