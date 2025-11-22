@@ -2,9 +2,9 @@
 
 This example demonstrates:
 - Celery-like API (app = AioTasks())
-- Pattern matching (match/case) from Python 3.11+
+- Pattern matching (match/case) from Python 3.12+
 - Modern type hints with PEP 604 (| operator)
-- ExceptionGroup handling from Python 3.11+
+- ExceptionGroup handling from Python 3.12+
 """
 
 import asyncio
@@ -16,7 +16,7 @@ from aiotasks.app import AioTasks
 app = AioTasks("myapp", broker="memory://", max_retries=3)
 
 
-# Python 3.11+ StrEnum for type-safe status codes
+# Python 3.12+ StrEnum for type-safe status codes
 class TaskStatus(StrEnum):
     """Task status codes."""
 
@@ -83,7 +83,7 @@ async def process_batch(
 ) -> dict[str, int | list[str]]:
     """Process a batch of items with error handling.
 
-    Demonstrates ExceptionGroup handling from Python 3.11+.
+    Demonstrates ExceptionGroup handling from Python 3.12+.
 
     Args:
         items: Items to process
@@ -114,7 +114,7 @@ async def process_batch(
             except Exception as e:
                 errors.append(e)
 
-    # Python 3.11+ ExceptionGroup for multiple errors
+    # Python 3.12+ ExceptionGroup for multiple errors
     if errors:
         print(f"  ⚠️  Encountered {len(errors)} errors during processing")
         # In production, you might want to handle this differently

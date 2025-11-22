@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.11 or higher
+- Python 3.12 or higher
 - pip
 
 ## Basic Installation
@@ -20,7 +20,7 @@ This installs the core package with the memory backend only.
 ### Redis Backend
 
 ```bash
-pip install aiotasks[redis]
+pip install aiotasks
 ```
 
 Includes Redis support with hiredis for better performance.
@@ -28,7 +28,7 @@ Includes Redis support with hiredis for better performance.
 ### RabbitMQ/AMQP Backend
 
 ```bash
-pip install aiotasks[amqp]
+pip install aiotasks
 ```
 
 Includes support for RabbitMQ and other AMQP brokers via aio-pika.
@@ -36,7 +36,7 @@ Includes support for RabbitMQ and other AMQP brokers via aio-pika.
 ### ZeroMQ Backend
 
 ```bash
-pip install aiotasks[zeromq]
+pip install aiotasks
 ```
 
 Includes support for ZeroMQ messaging.
@@ -44,7 +44,7 @@ Includes support for ZeroMQ messaging.
 ### Performance Optimizations
 
 ```bash
-pip install aiotasks[performance]
+pip install aiotasks
 ```
 
 Includes:
@@ -54,7 +54,7 @@ Includes:
 ### FastAPI Integration
 
 ```bash
-pip install aiotasks[fastapi]
+pip install aiotasks
 ```
 
 Includes FastAPI and Uvicorn for building web APIs with AioTasks.
@@ -62,7 +62,7 @@ Includes FastAPI and Uvicorn for building web APIs with AioTasks.
 ### All Features
 
 ```bash
-pip install aiotasks[all]
+pip install aiotasks
 ```
 
 Installs everything including all backends and optimizations.
@@ -113,7 +113,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install AioTasks with Redis backend
-RUN pip install aiotasks[redis]
+RUN pip install aiotasks
 
 COPY . /app
 

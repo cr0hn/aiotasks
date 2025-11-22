@@ -11,7 +11,7 @@ authors = [
 ]
 readme = "README.rst"
 license = { text = "BSD-3-Clause" }
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 keywords = ["asyncio", "celery", "tasks", "queue", "distributed", "redis", "rabbitmq", "zeromq"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -22,7 +22,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -31,34 +30,27 @@ classifiers = [
 ]
 
 dependencies = [
+    # Core dependencies
     "click>=8.1.7",
     "colorlog>=6.8.0",
     "pydantic>=2.5.0",
     "msgpack>=1.0.7",
     "tenacity>=8.2.3",
-    "uvloop>=0.19.0",  # Performance improvement by default
-]
-
-[project.optional-dependencies]
-redis = [
+    # Performance - included by default
+    "uvloop>=0.19.0",
+    "ujson>=5.9.0",
+    # All brokers - included by default
     "redis[hiredis]>=5.0.0",
-]
-amqp = [
     "aio-pika>=9.4.0",
-]
-zeromq = [
     "pyzmq>=25.1.0",
-]
-fastapi = [
+    # FastAPI integration - included by default
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
 ]
-performance = [
-    "ujson>=5.9.0",
-]
-all = [
-    "aiotasks[redis,amqp,zeromq,fastapi,performance]",
-]
+
+[project.optional-dependencies]
+# Legacy compatibility - all features now included in base install
+all = []
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.23.0",
@@ -94,7 +86,7 @@ Changelog = "https://github.com/cr0hn/aiotasks/blob/master/CHANGELOG.md"
 packages = ["aiotasks"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 100
 indent-width = 4
 
@@ -145,7 +137,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -221,7 +213,7 @@ exclude_lines = [
 ]
 
 [tool.pylint.main]
-py-version = "3.11"
+py-version = "3.12"
 jobs = 0
 suggestion-mode = true
 

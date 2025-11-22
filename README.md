@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**🚀 Modern Async Task Queue for Python 3.11+**
+**🚀 Modern Async Task Queue for Python 3.12+**
 
 *A Celery-like task manager that distributes asyncio coroutines*
 
@@ -61,7 +61,7 @@ AioTasks is a **modern, high-performance task queue** built on Python's asyncio.
 - **📊 Task Acknowledgment** - Reliable ACK/NACK support
 - **⏱️ TTL Support** - Automatic task expiration
 - **🎯 Type Safe** - Complete type hints with modern Python
-- **🐍 Python 3.11+** - Pattern matching, StrEnum, PEP 604
+- **🐍 Python 3.12+** - Pattern matching, StrEnum, PEP 604, type aliases
 - **📝 Comprehensive Testing** - pytest suite with 40%+ coverage
 - **🔄 CI/CD Ready** - GitHub Actions workflows included
 - **📚 Multi-Language Docs** - English & Spanish
@@ -70,36 +70,21 @@ AioTasks is a **modern, high-performance task queue** built on Python's asyncio.
 
 ## 📦 Installation
 
-### Choose Your Broker
+**One command installs everything:**
 
 ```bash
-# Basic installation (includes uvloop for performance)
 pip install aiotasks
-
-# By broker - install only what you need
-pip install aiotasks[redis]      # Redis backend (recommended for production)
-pip install aiotasks[amqp]       # RabbitMQ/AMQP backend
-pip install aiotasks[zeromq]     # ZeroMQ backend
-
-# With FastAPI integration
-pip install aiotasks[fastapi]
-
-# All backends + optimizations (Redis, AMQP, ZeroMQ, FastAPI, ujson)
-pip install aiotasks[all]
 ```
 
-### What's Included?
+### 🎁 What's Included?
 
-| Installation | Memory Backend | uvloop | Redis | RabbitMQ | ZeroMQ | FastAPI | ujson |
-|-------------|:--------------:|:------:|:-----:|:--------:|:------:|:-------:|:-----:|
-| `pip install aiotasks` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| `aiotasks[redis]` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `aiotasks[amqp]` | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| `aiotasks[zeromq]` | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| `aiotasks[fastapi]` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| `aiotasks[all]` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+✅ **All Brokers**: Redis, RabbitMQ (AMQP), ZeroMQ, Memory
+✅ **Performance**: uvloop, ujson
+✅ **FastAPI**: Full integration included
+✅ **CLI Tools**: Celery-compatible commands
+✅ **Type Safety**: Complete type hints
 
-**Note:** All installations include the **uvloop** event loop for improved performance by default.
+**No optional dependencies needed** - everything is included by default!
 
 ---
 
@@ -356,7 +341,7 @@ async def my_task():
 ### Major Features
 - ✅ **Celery-Compatible CLI** - Same commands, familiar syntax
 - ✅ **Modern API** - `AioTasks` class mimics Celery
-- ✅ **Python 3.11+ Support** - Pattern matching, StrEnum, modern type hints
+- ✅ **Python 3.12+ Support** - Pattern matching, StrEnum, type aliases, modern type hints
 - ✅ **Retry Logic** - Automatic retries with exponential backoff
 - ✅ **ACK/NACK** - Reliable task processing
 - ✅ **TTL Support** - Task expiration
@@ -369,7 +354,7 @@ async def my_task():
 - ✅ **Type Safety** - Full type hints
 
 ### Breaking Changes
-- Requires Python >=3.11 (was >=3.7)
+- Requires Python >=3.12 (was >=3.7)
 - Removed deprecated booby
 - Updated msgpack compatibility
 
@@ -382,7 +367,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 ### vs Celery
 
 - ✅ **Native Async** - No worker processes needed
-- ✅ **Modern Python** - Uses 3.11+ features
+- ✅ **Modern Python** - Uses 3.12+ features
 - ✅ **Type Safe** - Complete type hints
 - ✅ **Simpler** - Memory backend for development
 - ✅ **Compatible** - Easy migration

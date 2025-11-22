@@ -17,6 +17,12 @@ on:
         type: boolean
         default: false
 
+# Only allow one publish workflow to run at a time
+# Cancel any in-progress runs when a new one is triggered
+concurrency:
+  group: publish-${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   update-version-and-tag:
     name: Update version and create tag
@@ -33,7 +39,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
@@ -81,7 +87,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install build dependencies
         run: |
