@@ -227,6 +227,118 @@ def pool_restart(ctx: click.Context) -> None:  # noqa: ARG001
 
 
 # ============================================================================
+# Dashboard Command
+# ============================================================================
+
+
+@cli.command()
+@click.option("-A", "--app", help="Application instance (module.path:attr)")
+@click.option("--host", default="127.0.0.1", help="Dashboard host (default: 127.0.0.1)")
+@click.option("--port", type=int, default=5555, help="Dashboard port (default: 5555)")
+@click.option("--broker", help="Broker URL")
+@click.option("--backend", help="Result backend URL")
+@click.option(
+    "-l",
+    "--loglevel",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
+    help="Logging level",
+)
+@click.option("--enable-cors/--no-cors", default=True, help="Enable CORS (default: enabled)")
+@click.option("--metrics/--no-metrics", default=True, help="Enable Prometheus metrics (default: enabled)")
+@click.option("--metrics-port", type=int, default=9090, help="Prometheus metrics port (default: 9090)")
+@click.pass_context
+def dashboard(
+    ctx: click.Context,
+    app: str | None,
+    host: str,
+    port: int,
+    broker: str | None,
+    backend: str | None,
+    loglevel: str | None,
+    enable_cors: bool,
+    metrics: bool,
+    metrics_port: int,
+) -> None:
+    """Start web dashboard for monitoring and management.
+
+    Examples:
+        aiotasks dashboard
+        aiotasks -A myapp dashboard --host=0.0.0.0 --port=5555
+        aiotasks dashboard --broker=redis://localhost:6379/0
+        aiotasks dashboard --metrics --metrics-port=9090
+    """
+    import asyncio
+
+    # Get params from context
+    app_path = app or ctx.obj.get("app")
+    final_loglevel = loglevel or ctx.obj.get("loglevel", "INFO")
+    broker_url = broker or ctx.obj.get("broker") or "memory://"
+
+    # Setup logging
+    logging.basicConfig(
+        level=getattr(logging, final_loglevel),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
+    click.echo("🎨 Starting AioTasks Dashboard...")
+    click.echo(f"   Dashboard URL: http://{host}:{port}")
+    click.echo(f"   Broker: {broker_url}")
+    if backend:
+        click.echo(f"   Backend: {backend}")
+    if metrics:
+        click.echo(f"   Metrics URL: http://{host}:{metrics_port}/metrics")
+    click.echo(f"   CORS: {'enabled' if enable_cors else 'disabled'}")
+    click.echo(f"   Log level: {final_loglevel}")
+    click.echo("")
+
+    # Create app and dashboard
+    try:
+        from aiotasks import AioTasks
+
+        # Create AioTasks instance
+        aiotasks_app = AioTasks(
+            name=app_path or "dashboard_app",
+            broker=broker_url,
+            backend=backend,
+        )
+
+        # Setup metrics if enabled
+        if metrics:
+            aiotasks_app.setup_metrics(
+                namespace=app_path or "aiotasks",
+                enable_http_server=True,
+                http_port=metrics_port,
+            )
+
+        click.echo("✅ Dashboard initialized")
+        click.echo("")
+        click.echo("=" * 60)
+        click.echo("  Press Ctrl+C to stop the dashboard")
+        click.echo("=" * 60)
+        click.echo("")
+
+        # Start dashboard
+        async def run_dashboard():
+            await aiotasks_app.start_dashboard(
+                host=host,
+                port=port,
+                enable_cors=enable_cors,
+            )
+
+        asyncio.run(run_dashboard())
+
+    except KeyboardInterrupt:
+        click.echo("\n👋 Dashboard stopped")
+    except Exception as e:
+        click.echo(f"❌ Error starting dashboard: {e}", err=True)
+        if final_loglevel == "DEBUG":
+            import traceback
+
+            traceback.print_exc()
+        ctx.exit(1)
+
+
+# ============================================================================
 # Status Command
 # ============================================================================
 
@@ -240,6 +352,7 @@ def status(ctx: click.Context) -> None:  # noqa: ARG001
     click.echo("")
     click.echo("Available commands:")
     click.echo("  worker    - Start worker instance")
+    click.echo("  dashboard - Start web dashboard")
     click.echo("  inspect   - Inspect running workers")
     click.echo("  control   - Control workers remotely")
     click.echo("  status    - Show cluster status")
