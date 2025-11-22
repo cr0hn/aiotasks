@@ -4,16 +4,20 @@ Provides both Celery-style API and classic API for distributed task processing.
 """
 
 # Celery-style API (recommended)
+# Legacy imports (for backward compatibility)
+from .actions import *  # noqa: F403
 from .app import AioTasks
+from .core import *  # noqa: F403
 
-# Result backend
-from .result_backend import (
-    MemoryResultBackend,
-    RedisResultBackend,
-    ResultBackend,
-    TaskResult,
-    build_result_backend,
-)
+# Dashboard
+from .dashboard import DashboardServer, create_dashboard
+
+# Dead Letter Queue
+from .dlq import DeadLetterQueue, FailedTask, RedisDLQ
+from .helpers import *  # noqa: F403
+
+# Monitoring and metrics
+from .monitoring import PrometheusMetrics, get_metrics, setup_metrics
 
 # Periodic tasks (Celery Beat compatible)
 from .periodic import (
@@ -26,12 +30,6 @@ from .periodic import (
     every,
 )
 
-# Dead Letter Queue
-from .dlq import DeadLetterQueue, FailedTask, RedisDLQ
-
-# Monitoring and metrics
-from .monitoring import PrometheusMetrics, get_metrics, setup_metrics
-
 # Rate limiting
 from .rate_limit import (
     MemoryRateLimiter,
@@ -43,17 +41,18 @@ from .rate_limit import (
     rate_limit,
 )
 
-# Dashboard
-from .dashboard import DashboardServer, create_dashboard
+# Result backend
+from .result_backend import (
+    MemoryResultBackend,
+    RedisResultBackend,
+    ResultBackend,
+    TaskResult,
+    build_result_backend,
+)
+from .tasks import *  # noqa: F403
 
 # Classic API (still supported)
 from .tasks import build_manager
-
-# Legacy imports (for backward compatibility)
-from .actions import *  # noqa: F403
-from .core import *  # noqa: F403
-from .helpers import *  # noqa: F403
-from .tasks import *  # noqa: F403
 
 __version__ = "2.0.0"
 

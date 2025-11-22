@@ -5,10 +5,9 @@ Supports multiple storage backends: Redis, Memory, and can be extended.
 """
 
 import asyncio
-import json
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 try:
@@ -60,21 +59,15 @@ class TaskResult:
             "error": self.error,
             "traceback": self.traceback,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": (
-                self.completed_at.isoformat() if self.completed_at else None
-            ),
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TaskResult":
         """Create from dictionary."""
-        started_at = (
-            datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None
-        )
+        started_at = datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None
         completed_at = (
-            datetime.fromisoformat(data["completed_at"])
-            if data.get("completed_at")
-            else None
+            datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None
         )
 
         return cls(

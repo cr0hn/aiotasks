@@ -23,7 +23,8 @@ async def generate_tasks():
         async with task_01.delay(x) as f:
             print(f)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Start aiotasks for waiting tasks
     manager.run()
 

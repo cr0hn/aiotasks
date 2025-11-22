@@ -13,7 +13,7 @@ def test_cli_worker_runs_show_help():
     runner = CliRunner()
     result = runner.invoke(worker)
 
-    assert 'Usage: worker [OPTIONS]' in result.output
+    assert "Usage: worker [OPTIONS]" in result.output
 
 
 def test_cli_worker_runs_ok(monkeypatch):
@@ -23,4 +23,4 @@ def test_cli_worker_runs_ok(monkeypatch):
     runner = CliRunner()
     result = runner.invoke(worker, ["-A", "package"])
 
-    assert 'ok' in result.output
+    assert "ok" in result.output

@@ -90,7 +90,7 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
             # if function is a coro, add some new functions
             if asyncio.iscoroutinefunction(f):
                 if not topics:
-                    log.error(f"Empty topic fount in function '{f.__name__}'. Skipping " "it.")
+                    log.error(f"Empty topic fount in function '{f.__name__}'. Skipping it.")
                 for topic in topics:
                     self.topics_subscribers[topic].add(f)
             return f
@@ -183,7 +183,7 @@ class AsyncTaskSubscribeBase(metaclass=abc.ABCMeta):
             raw = await self.get_next_message(channel)
 
             if hasattr(raw, "__iter__") and len(raw) != 2:
-                log.error("Invalid data from Redis subscriber. It must be a " "tuple with len 2")
+                log.error("Invalid data from Redis subscriber. It must be a tuple with len 2")
 
             ch, data = raw
 
@@ -322,12 +322,12 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
         if self.pool == "thread":
             log.info(f"Creating ThreadPoolExecutor with {self.task_concurrency} workers")
             return ThreadPoolExecutor(max_workers=self.task_concurrency)
-        elif self.pool == "process":
+        if self.pool == "process":
             log.info(f"Creating ProcessPoolExecutor with {self.task_concurrency} workers")
             return ProcessPoolExecutor(max_workers=self.task_concurrency)
-        else:  # async
-            log.info(f"Using asyncio coroutine pool with concurrency={self.task_concurrency}")
-            return None
+        # async
+        log.info(f"Using asyncio coroutine pool with concurrency={self.task_concurrency}")
+        return None
 
     def task(self, name: str | None = None) -> Callable:
         """Decorator to register a function as a delayed task.
@@ -506,16 +506,14 @@ class AsyncTaskDelayBase(metaclass=abc.ABCMeta):
                         return _asyncio.run(fn(*args, **kwargs))
 
                     return await loop.run_in_executor(self.executor, _run_async)
-                else:
-                    # Normal sync function in executor
-                    # Create partial to bind args/kwargs
-                    from functools import partial as _partial
+                # Normal sync function in executor
+                # Create partial to bind args/kwargs
+                from functools import partial as _partial
 
-                    bound_fn = _partial(fn, *args, **kwargs)
-                    return await loop.run_in_executor(self.executor, bound_fn)
-            else:
-                # Async pool - execute coroutine directly
-                return await fn(*args, **kwargs)
+                bound_fn = _partial(fn, *args, **kwargs)
+                return await loop.run_in_executor(self.executor, bound_fn)
+            # Async pool - execute coroutine directly
+            return await fn(*args, **kwargs)
 
         # Create a retry decorator dynamically based on max_retries
         retry_decorator = retry(

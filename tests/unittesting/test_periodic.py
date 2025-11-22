@@ -336,7 +336,7 @@ class TestPeriodicTask:
         assert task.total_runs == 2
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestPeriodicScheduler:
     """Test PeriodicScheduler class."""
 
@@ -515,7 +515,7 @@ class TestPeriodicScheduler:
         assert received_args["kwargs"] == {"key": "value"}
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestPeriodicEdgeCases:
     """Test edge cases for periodic tasks."""
 

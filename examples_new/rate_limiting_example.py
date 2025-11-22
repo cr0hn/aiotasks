@@ -57,7 +57,7 @@ async def main():
     elapsed = time.time() - start_time
 
     print(f"✅ Completed 15 API calls in {elapsed:.2f} seconds")
-    print(f"   (Expected ~3 seconds due to 5/second limit)")
+    print("   (Expected ~3 seconds due to 5/second limit)")
     print()
 
     # Test Example 2: SMS sending
@@ -88,7 +88,7 @@ async def main():
     elapsed = time.time() - start_time
 
     print(f"✅ Processed 9 items in {elapsed:.2f} seconds")
-    print(f"   (Expected ~3 seconds due to 3/second limit)")
+    print("   (Expected ~3 seconds due to 3/second limit)")
     print()
 
     # Example 4: Rate limiting with timeout

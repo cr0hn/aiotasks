@@ -90,14 +90,13 @@ class RateLimit:
         """String representation."""
         if self.period == 1.0:
             return f"{self.limit}/s"
-        elif self.period == 60.0:
+        if self.period == 60.0:
             return f"{self.limit}/m"
-        elif self.period == 3600.0:
+        if self.period == 3600.0:
             return f"{self.limit}/h"
-        elif self.period == 86400.0:
+        if self.period == 86400.0:
             return f"{self.limit}/d"
-        else:
-            return f"{self.limit}/{self.period}s"
+        return f"{self.limit}/{self.period}s"
 
 
 class RateLimiter:
@@ -445,12 +444,11 @@ def build_rate_limiter(backend: str = "memory", **kwargs: Any) -> RateLimiter:
     """
     if backend == "memory":
         return MemoryRateLimiter()
-    elif backend == "redis":
+    if backend == "redis":
         redis_url = kwargs.get("redis_url", "redis://localhost:6379/0")
         return RedisRateLimiter(redis_url=redis_url)
-    else:
-        msg = f"Unknown rate limiter backend: {backend}"
-        raise ValueError(msg)
+    msg = f"Unknown rate limiter backend: {backend}"
+    raise ValueError(msg)
 
 
 class RateLimitedTask:
@@ -474,11 +472,7 @@ class RateLimitedTask:
             timeout: Maximum wait time (default: None = wait forever)
         """
         self.task_func = task_func
-        self.rate_limit = (
-            RateLimit.parse(rate_limit)
-            if isinstance(rate_limit, str)
-            else rate_limit
-        )
+        self.rate_limit = RateLimit.parse(rate_limit) if isinstance(rate_limit, str) else rate_limit
         self.limiter = limiter or MemoryRateLimiter()
         self.wait = wait
         self.timeout = timeout
@@ -501,17 +495,14 @@ class RateLimitedTask:
         """
         if self.wait:
             # Wait for slot
-            acquired = await self.limiter.wait_for_slot(
-                self.key, self.rate_limit, self.timeout
-            )
+            acquired = await self.limiter.wait_for_slot(self.key, self.rate_limit, self.timeout)
             if not acquired:
                 msg = f"Rate limit timeout for task '{self.key}'"
                 raise RuntimeError(msg)
-        else:
-            # Try to acquire without waiting
-            if not await self.limiter.acquire(self.key, self.rate_limit):
-                msg = f"Rate limited: {self.key} (max {self.rate_limit})"
-                raise RuntimeError(msg)
+        # Try to acquire without waiting
+        elif not await self.limiter.acquire(self.key, self.rate_limit):
+            msg = f"Rate limited: {self.key} (max {self.rate_limit})"
+            raise RuntimeError(msg)
 
         # Execute task
         return await self.task_func(*args, **kwargs)

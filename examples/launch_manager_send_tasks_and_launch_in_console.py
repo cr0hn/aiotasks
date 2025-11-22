@@ -20,8 +20,9 @@ async def task_01(num):
 async def generate_tasks():
     # Generates 5 tasks
     for x in range(5):
-        await send_task("task_01", args=(x, ))
+        await send_task("task_01", args=(x,))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Launch the task generator. It'll create 5 tasks
     manager.loop.run_until_complete(generate_tasks())

@@ -13,4 +13,4 @@ def test_aiotasks___main__runs_ok():
     with pytest.raises(SystemExit) as e:
         main()
 
-    assert str(e.value) == '0'
+    assert str(e.value) == "0"

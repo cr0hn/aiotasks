@@ -16,7 +16,7 @@ import pytest
 from aiotasks import AioTasks, crontab, every
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestResultBackendIntegration:
     """Test Result Backend in real scenarios."""
 
@@ -110,7 +110,7 @@ class TestResultBackendIntegration:
         app.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestPeriodicTasksIntegration:
     """Test Periodic Tasks in real scenarios."""
 
@@ -212,7 +212,7 @@ class TestPeriodicTasksIntegration:
         # (This test is timing-sensitive)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestDLQIntegration:
     """Test Dead Letter Queue in real scenarios."""
 
@@ -297,7 +297,7 @@ class TestDLQIntegration:
         assert stats["by_task_name"]["task_b"] == 1
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestAllFeaturesIntegration:
     """Test all features working together."""
 
@@ -387,7 +387,7 @@ class TestAllFeaturesIntegration:
         app.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestCeleryCompatibilityIntegration:
     """Test Celery compatibility with other features."""
 
@@ -418,7 +418,7 @@ class TestCeleryCompatibilityIntegration:
         app.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestErrorRecoveryScenarios:
     """Test error recovery and resilience."""
 

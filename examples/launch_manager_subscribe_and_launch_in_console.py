@@ -34,6 +34,6 @@ async def generate_tasks():
         await manager.publish("other_topic", f"XXXXX:{x}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Launch the task generator. It'll create 5 tasks
     manager.loop.run_until_complete(generate_tasks())

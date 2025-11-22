@@ -16,8 +16,8 @@ import pytest
 from aiotasks import AioTasks, every
 
 
-@pytest.mark.asyncio()
-@pytest.mark.slow()
+@pytest.mark.asyncio
+@pytest.mark.slow
 class TestHighConcurrency:
     """Test high concurrency scenarios."""
 
@@ -162,8 +162,8 @@ class TestHighConcurrency:
         assert regular_count["count"] > 150  # Most regular tasks complete
 
 
-@pytest.mark.asyncio()
-@pytest.mark.slow()
+@pytest.mark.asyncio
+@pytest.mark.slow
 class TestMemoryAndResources:
     """Test memory usage and resource management."""
 
@@ -250,8 +250,8 @@ class TestMemoryAndResources:
         app.stop()
 
 
-@pytest.mark.asyncio()
-@pytest.mark.slow()
+@pytest.mark.asyncio
+@pytest.mark.slow
 class TestRaceConditions:
     """Test for race conditions."""
 
@@ -318,8 +318,8 @@ class TestRaceConditions:
         assert 8 <= len(tasks) <= 22
 
 
-@pytest.mark.asyncio()
-@pytest.mark.slow()
+@pytest.mark.asyncio
+@pytest.mark.slow
 class TestPerformanceBenchmarks:
     """Performance benchmarks."""
 

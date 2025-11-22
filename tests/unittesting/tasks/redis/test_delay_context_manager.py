@@ -6,7 +6,6 @@ from aiotasks import AioTasksTimeout, build_manager
 
 
 def test_redis_wait_oks(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["test_redis_wait_oks_finished"] = False
@@ -30,7 +29,6 @@ def test_redis_wait_oks(event_loop, redis_instance):
 
 
 def test_redis_wait_no_port_gotten(event_loop, redis_instance):
-
     _redis_instance, _ = redis_instance.rsplit(":", maxsplit=1)
 
     manager = build_manager(dsn=_redis_instance, loop=event_loop)
@@ -56,7 +54,6 @@ def test_redis_wait_no_port_gotten(event_loop, redis_instance):
 
 
 def test_redis_wait_timeout_raises(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["test_redis_wait_timeout_raises_finished"] = False
@@ -74,7 +71,7 @@ def test_redis_wait_timeout_raises(event_loop, redis_instance):
             async with task_test_redis_wait_oks.delay(timeout=0.2) as f:
                 pass
         except AioTasksTimeout:
-                globals()["test_redis_wait_timeout_raises_finished"] = True
+            globals()["test_redis_wait_timeout_raises_finished"] = True
 
     event_loop.run_until_complete(run())
     manager.stop()
@@ -85,7 +82,6 @@ def test_redis_wait_timeout_raises(event_loop, redis_instance):
 
 
 def test_redis_wait_infinite_timeout_raises(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["test_redis_wait_infinite_timeout_raises_finished"] = False
@@ -113,7 +109,6 @@ def test_redis_wait_infinite_timeout_raises(event_loop, redis_instance):
 
 
 def test_redis_wait_infinite_raises_timeout_exception(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["test_redis_wait_infinite_timeout_raises_finished"] = False
@@ -132,4 +127,3 @@ def test_redis_wait_infinite_raises_timeout_exception(event_loop, redis_instance
 
     event_loop.run_until_complete(run())
     manager.stop()
-

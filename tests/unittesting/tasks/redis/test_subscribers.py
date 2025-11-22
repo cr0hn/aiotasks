@@ -4,14 +4,12 @@ from aiotasks import build_manager
 
 
 def test_redis_subscribers_oks(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["test_redis_subscribers_oks_finished"] = False
 
     @manager.subscribe("hello")
     async def task_test_redis_subscribers_oks(topic, data):
-
         if topic == "hello" and data == "world":
             globals()["test_redis_subscribers_oks_finished"] = True
 
@@ -31,7 +29,6 @@ def test_redis_subscribers_oks(event_loop, redis_instance):
 
 
 def test_redis_subscribers_no_topics(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     async def run():
@@ -81,11 +78,13 @@ def test_redis_subscribers_empty_topics(event_loop, redis_instance):
     manager.stop()
 
     assert len(manager.topics_subscribers) == 0
-    assert "Empty topic fount in function 'task_test_redis_subscribers_oks'. Skipping it." in custom.content
+    assert (
+        "Empty topic fount in function 'task_test_redis_subscribers_oks'. Skipping it."
+        in custom.content
+    )
 
 
 def test_redis_subscribers_duplicated_topics(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     @manager.subscribe("hello")
@@ -110,7 +109,6 @@ def test_redis_subscribers_duplicated_topics(event_loop, redis_instance):
 
 
 def test_redis_subscribers_no_port_gotten(event_loop, redis_instance):
-
     _redis_instance, _ = redis_instance.rsplit(":", maxsplit=1)
 
     manager = build_manager(dsn=_redis_instance, loop=event_loop)
@@ -138,7 +136,6 @@ def test_redis_subscribers_no_port_gotten(event_loop, redis_instance):
 
 
 def test_redis_subscribers_timeout_raises(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["test_redis_subscribers_timeout_raises_finished_tasks"] = False
@@ -162,4 +159,3 @@ def test_redis_subscribers_timeout_raises(event_loop, redis_instance):
     assert globals()["test_redis_subscribers_timeout_raises_finished_tasks"] is False
 
     del globals()["test_redis_subscribers_timeout_raises_finished_tasks"]
-

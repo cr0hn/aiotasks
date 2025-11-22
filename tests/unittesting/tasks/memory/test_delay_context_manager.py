@@ -6,7 +6,6 @@ from aiotasks import AioTasksTimeout, build_manager
 
 
 def test_memory_wait_oks(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     globals()["test_memory_wait_oks_finished"] = False
@@ -30,7 +29,6 @@ def test_memory_wait_oks(event_loop):
 
 
 def test_memory_wait_timeout_raises(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     globals()["test_memory_wait_timeout_raises_finished"] = False
@@ -48,7 +46,7 @@ def test_memory_wait_timeout_raises(event_loop):
             async with task_test_memory_wait_oks.delay(timeout=0.2) as f:
                 pass
         except AioTasksTimeout:
-                globals()["test_memory_wait_timeout_raises_finished"] = True
+            globals()["test_memory_wait_timeout_raises_finished"] = True
 
     event_loop.run_until_complete(run())
     manager.stop()
@@ -59,7 +57,6 @@ def test_memory_wait_timeout_raises(event_loop):
 
 
 def test_memory_wait_infinite_timeout_raises(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     globals()["test_memory_wait_infinite_timeout_raises_finished"] = False
@@ -87,7 +84,6 @@ def test_memory_wait_infinite_timeout_raises(event_loop):
 
 
 def test_memory_wait_infinite_raises_timeout_exception(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     globals()["test_memory_wait_infinite_timeout_raises_finished"] = False
@@ -106,4 +102,3 @@ def test_memory_wait_infinite_raises_timeout_exception(event_loop):
 
     event_loop.run_until_complete(run())
     manager.stop()
-

@@ -1,9 +1,7 @@
 """Tests for __main__ module."""
 
 import sys
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 
 def test_main_module_imports():
@@ -30,6 +28,7 @@ def test_main_module_direct_execution():
     # We expect it to show help or version
     result = subprocess.run(
         [sys.executable, "-m", "aiotasks", "--version"],
+        check=False,
         capture_output=True,
         text=True,
         timeout=5,

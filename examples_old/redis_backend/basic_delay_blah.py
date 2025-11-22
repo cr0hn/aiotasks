@@ -32,7 +32,7 @@ async def run():
     # await manager.wait(timeout=5, exit_on_finish=True, wait_timeout=0.5)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     event_loop.run_until_complete(run())
     manager.stop()
 

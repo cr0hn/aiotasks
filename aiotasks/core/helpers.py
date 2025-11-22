@@ -1,6 +1,7 @@
 """
 This file contains utils and reusable functions
 """
+
 import logging
 from collections import namedtuple
 

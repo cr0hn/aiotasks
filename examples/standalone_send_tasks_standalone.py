@@ -19,9 +19,10 @@ async def generate_tasks():
     for x in range(5):
         print(f"Iteration: {x}")
 
-        await send_task("task_01", args=(x, ))
+        await send_task("task_01", args=(x,))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Start aiotasks for waiting tasks
     manager.run()
 

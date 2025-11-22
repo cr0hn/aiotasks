@@ -4,7 +4,6 @@ from aiotasks import run_with_exceptions_and_logs
 
 
 def test_run_with_exceptions_and_logs_oks(monkeypatch):
-
     logger = logging.getLogger("aiotasks")
 
     class CustomLogger(logging.StreamHandler):
@@ -24,13 +23,10 @@ def test_run_with_exceptions_and_logs_oks(monkeypatch):
 
 
 def test_run_with_exceptions_and_logs_exception_raised(monkeypatch):
-
     def raise_exception(x):
         raise Exception()
 
-    monkeypatch.setattr(
-        "aiotasks.actions.worker.console.find_manager",
-        raise_exception)
+    monkeypatch.setattr("aiotasks.actions.worker.console.find_manager", raise_exception)
 
     logger = logging.getLogger("aiotasks")
 
@@ -51,13 +47,10 @@ def test_run_with_exceptions_and_logs_exception_raised(monkeypatch):
 
 
 def test_run_with_exceptions_and_logs_ctrl_plus_c_raised(monkeypatch):
-
     def raise_exception(x):
         raise KeyboardInterrupt()
 
-    monkeypatch.setattr(
-        "aiotasks.actions.worker.console.find_manager",
-        raise_exception)
+    monkeypatch.setattr("aiotasks.actions.worker.console.find_manager", raise_exception)
 
     logger = logging.getLogger("aiotasks")
 

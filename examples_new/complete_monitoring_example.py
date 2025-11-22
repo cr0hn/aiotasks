@@ -40,9 +40,7 @@ async def main():
 
     # 1. Setup Prometheus Metrics
     print("📊 Step 1: Setting up Prometheus metrics...")
-    metrics = app.setup_metrics(
-        namespace="production_app", enable_http_server=True, http_port=9090
-    )
+    metrics = app.setup_metrics(namespace="production_app", enable_http_server=True, http_port=9090)
     print("   ✓ Metrics server: http://localhost:9090/metrics")
     print()
 
@@ -140,16 +138,12 @@ async def main():
     # Emails (rate limited to 50/m)
     email_tasks = []
     for i in range(20):
-        email_tasks.append(
-            send_email.delay(f"user{i}@example.com", "Important notification")
-        )
+        email_tasks.append(send_email.delay(f"user{i}@example.com", "Important notification"))
 
     # Payments (no rate limit)
     payment_tasks = []
     for i in range(10):
-        payment_tasks.append(
-            process_payment.delay(f"order_{i}", random.uniform(10.0, 1000.0))
-        )
+        payment_tasks.append(process_payment.delay(f"order_{i}", random.uniform(10.0, 1000.0)))
 
     print(f"   ✓ Submitted {len(api_tasks)} API calls")
     print(f"   ✓ Submitted {len(email_tasks)} emails")

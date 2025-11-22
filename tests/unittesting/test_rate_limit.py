@@ -554,9 +554,7 @@ class TestRateLimitedTaskWrapper:
         async def my_task(x):
             return x * 2
 
-        limited_task = RateLimitedTask(
-            task_func=my_task, rate_limit="5/s", wait=True
-        )
+        limited_task = RateLimitedTask(task_func=my_task, rate_limit="5/s", wait=True)
 
         result = await limited_task(5)
         assert result == 10
@@ -568,9 +566,7 @@ class TestRateLimitedTaskWrapper:
         async def my_task():
             return "done"
 
-        limited_task = RateLimitedTask(
-            task_func=my_task, rate_limit="10/m", wait=False
-        )
+        limited_task = RateLimitedTask(task_func=my_task, rate_limit="10/m", wait=False)
 
         result = await limited_task()
         assert result == "done"
@@ -584,9 +580,7 @@ class TestRateLimitedTaskWrapper:
         async def my_task():
             call_count["count"] += 1
 
-        limited_task = RateLimitedTask(
-            task_func=my_task, rate_limit="5/s"
-        )
+        limited_task = RateLimitedTask(task_func=my_task, rate_limit="5/s")
 
         await limited_task()
         await limited_task()

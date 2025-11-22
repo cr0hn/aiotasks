@@ -15,7 +15,6 @@ from aiotasks.core.helpers import dict_to_obj, get_log_level
 from aiotasks.core.logger import CONSOLE_LEVEL, setup_file_logger, setup_logging
 from aiotasks.core.model import SharedConfig
 
-
 # =============================================================================
 # Exception Tests
 # =============================================================================

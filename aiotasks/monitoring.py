@@ -111,7 +111,23 @@ class PrometheusMetrics:
             f"{self.namespace}_task_duration_seconds",
             "Task execution duration in seconds",
             ["task_name"],
-            buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0),
+            buckets=(
+                0.005,
+                0.01,
+                0.025,
+                0.05,
+                0.1,
+                0.25,
+                0.5,
+                1.0,
+                2.5,
+                5.0,
+                10.0,
+                30.0,
+                60.0,
+                120.0,
+                300.0,
+            ),
         )
 
         # Gauge: Active workers
@@ -292,9 +308,7 @@ class PrometheusMetrics:
         self.periodic_tasks_total.labels(task_name=task_name).inc()
 
     @asynccontextmanager
-    async def track_task_execution(
-        self, task_name: str
-    ) -> AsyncGenerator[None, None]:
+    async def track_task_execution(self, task_name: str) -> AsyncGenerator[None, None]:
         """Context manager to track task execution.
 
         Automatically records start, completion, and duration.
