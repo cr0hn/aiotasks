@@ -29,6 +29,23 @@ from .periodic import (
 # Dead Letter Queue
 from .dlq import DeadLetterQueue, FailedTask, RedisDLQ
 
+# Monitoring and metrics
+from .monitoring import PrometheusMetrics, get_metrics, setup_metrics
+
+# Rate limiting
+from .rate_limit import (
+    MemoryRateLimiter,
+    RateLimit,
+    RateLimitedTask,
+    RateLimiter,
+    RedisRateLimiter,
+    build_rate_limiter,
+    rate_limit,
+)
+
+# Dashboard
+from .dashboard import DashboardServer, create_dashboard
+
 # Classic API (still supported)
 from .tasks import build_manager
 

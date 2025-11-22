@@ -129,6 +129,15 @@ class AioTasks:
         # Store DLQ in manager for task failure handling
         self._manager._dlq = self._dlq
 
+        # Prometheus metrics (optional, initialized on demand)
+        self._metrics: Any = None
+
+        # Rate limiter (optional, initialized on demand)
+        self._rate_limiter: Any = None
+
+        # Dashboard server (optional, initialized on demand)
+        self._dashboard: Any = None
+
         compat_msg = " (Celery-compatible)" if celery_compat else ""
         backend_msg = f", backend: {backend}" if backend else ""
         log.info(
@@ -457,6 +466,126 @@ class AioTasks:
             >>> print(f"By task: {stats['by_task_name']}")
         """
         return self._dlq.get_stats()
+
+    # Monitoring and Metrics Methods
+
+    def setup_metrics(
+        self,
+        namespace: str | None = None,
+        enable_http_server: bool = False,
+        http_port: int = 9090,
+    ) -> Any:
+        """Setup Prometheus metrics for monitoring.
+
+        Args:
+            namespace: Metric namespace (default: app name)
+            enable_http_server: Auto-start HTTP metrics server
+            http_port: HTTP server port for /metrics endpoint
+
+        Returns:
+            PrometheusMetrics instance
+
+        Example:
+            >>> app = AioTasks('myapp', broker='redis://localhost')
+            >>> metrics = app.setup_metrics(enable_http_server=True, http_port=9090)
+            >>>
+            >>> # Metrics available at http://localhost:9090/metrics
+        """
+        from .monitoring import setup_metrics
+
+        if self._metrics is not None:
+            log.warning("Metrics already initialized")
+            return self._metrics
+
+        namespace = namespace or self.name
+        self._metrics = setup_metrics(
+            app=self,
+            namespace=namespace,
+            enable_http_server=enable_http_server,
+            http_port=http_port,
+        )
+
+        # Store metrics in manager for automatic tracking
+        if hasattr(self._manager, "_metrics"):
+            self._manager._metrics = self._metrics
+
+        return self._metrics
+
+    def get_metrics(self) -> Any:
+        """Get metrics instance.
+
+        Returns:
+            PrometheusMetrics instance or None if not initialized
+        """
+        return self._metrics
+
+    # Dashboard Methods
+
+    def setup_dashboard(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 5555,
+        enable_cors: bool = True,
+    ) -> Any:
+        """Setup web dashboard for monitoring and management.
+
+        Args:
+            host: Server host address
+            port: Server port
+            enable_cors: Enable CORS for API access
+
+        Returns:
+            DashboardServer instance
+
+        Example:
+            >>> app = AioTasks('myapp', broker='redis://localhost')
+            >>> dashboard = app.setup_dashboard(host='0.0.0.0', port=5555)
+            >>> await dashboard.start()
+            >>>
+            >>> # Dashboard available at http://localhost:5555
+        """
+        from .dashboard import DashboardServer
+
+        if self._dashboard is not None:
+            log.warning("Dashboard already initialized")
+            return self._dashboard
+
+        self._dashboard = DashboardServer(
+            app=self,
+            host=host,
+            port=port,
+            enable_cors=enable_cors,
+        )
+
+        return self._dashboard
+
+    async def start_dashboard(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 5555,
+        enable_cors: bool = True,
+    ) -> None:
+        """Setup and start dashboard server.
+
+        Args:
+            host: Server host address
+            port: Server port
+            enable_cors: Enable CORS for API access
+
+        Example:
+            >>> app = AioTasks('myapp', broker='redis://localhost')
+            >>> await app.start_dashboard(port=5555)
+        """
+        dashboard = self.setup_dashboard(host=host, port=port, enable_cors=enable_cors)
+        await dashboard.start()
+
+    def get_dashboard(self) -> Any:
+        """Get dashboard instance.
+
+        Returns:
+            DashboardServer instance or None if not initialized
+        """
+        return self._dashboard
 
     def __repr__(self) -> str:
         """String representation."""
