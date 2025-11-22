@@ -311,10 +311,9 @@ class TestGlobalMetrics:
 
     def test_setup_metrics_twice_returns_same_instance(self):
         """Test setup_metrics returns same instance when called twice."""
-        from aiotasks.monitoring import _global_metrics, setup_metrics
-
         # Reset global
         import aiotasks.monitoring as mon
+        from aiotasks.monitoring import setup_metrics
 
         mon._global_metrics = None
 

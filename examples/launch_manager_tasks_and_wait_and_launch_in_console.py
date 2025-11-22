@@ -28,6 +28,7 @@ async def generate_tasks():
         async with task_01.delay(x) as f:
             print(f)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Launch the task generator. It'll create 5 tasks
     manager.loop.run_until_complete(generate_tasks())

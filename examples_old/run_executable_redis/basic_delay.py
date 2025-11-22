@@ -26,5 +26,6 @@ async def main_async():
         print(f"T{i}")
         await task_01.delay(random.randint(1, 100))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     loop.run_until_complete(main_async())

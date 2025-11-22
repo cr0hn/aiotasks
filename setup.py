@@ -30,60 +30,63 @@ from os.path import dirname, join
 
 from setuptools import find_packages, setup
 
-if sys.version_info < (3, 5,):
+if sys.version_info < (
+    3,
+    5,
+):
     raise RuntimeError("aiotasks requires Python 3.5.0+")
 
 
 #
 # Get version software version
 #
-version_file = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "aiotasks")), '__init__.py')
-with codecs.open(version_file, 'r', 'latin1') as fp:
+version_file = os.path.join(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "aiotasks")), "__init__.py"
+)
+with codecs.open(version_file, "r", "latin1") as fp:
     try:
-        version = re.findall(r"^__version__ = ['\"]([^']+)['\"]\r?$",
-                             fp.read(), re.M)[0]
+        version = re.findall(r"^__version__ = ['\"]([^']+)['\"]\r?$", fp.read(), re.M)[0]
     except IndexError:
-        raise RuntimeError('Unable to determine version.')
+        raise RuntimeError("Unable to determine version.")
 
 
-with open(join(dirname(__file__), 'requirements.txt')) as f:
+with open(join(dirname(__file__), "requirements.txt")) as f:
     required = f.read().splitlines()
 
-with open(join(dirname(__file__), 'requirements-performance.txt')) as f:
+with open(join(dirname(__file__), "requirements-performance.txt")) as f:
     required_performance = f.read().splitlines()
 
-with open(join(dirname(__file__), 'README.rst')) as f:
+with open(join(dirname(__file__), "README.rst")) as f:
     long_description = f.read()
 
-with open(join(dirname(__file__), 'CHANGELOG.md')) as f:
+with open(join(dirname(__file__), "CHANGELOG.md")) as f:
     long_description += "\n".join((long_description, "\n", f.read()))
 
 setup(
-    name='aiotasks',
+    name="aiotasks",
     version=version,
     install_requires=required,
-    url='https://github.com/cr0hn/aiotasks',
-    license='BSD',
-    author='Daniel Garcia (cr0hn) - @ggdaniel',
-    author_email='cr0hn@cr0hn.com',
+    url="https://github.com/cr0hn/aiotasks",
+    license="BSD",
+    author="Daniel Garcia (cr0hn) - @ggdaniel",
+    author_email="cr0hn@cr0hn.com",
     packages=find_packages(),
     include_package_data=True,
-    extras_require={
-        'performance':  required_performance
+    extras_require={"performance": required_performance},
+    entry_points={
+        "console_scripts": [
+            "aiotasks = aiotasks.actions.cli:cli",
+        ]
     },
-    entry_points={'console_scripts': [
-        'aiotasks = aiotasks.actions.cli:cli',
-    ]},
-    description='A Celery like task manager that distributes '
-                'Asyncio coroutines',
+    description="A Celery like task manager that distributes Asyncio coroutines",
     long_description=long_description,
     classifiers=[
-        'Environment :: Console',
-        'License :: OSI Approved :: BSD License',
-        'Operating System :: MacOS',
-        'Operating System :: Microsoft :: Windows',
-        'Operating System :: POSIX',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-    ]
+        "Environment :: Console",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+    ],
 )

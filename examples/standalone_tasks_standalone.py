@@ -17,7 +17,8 @@ async def generate_tasks():
     for x in range(5):
         await task_01.delay(x)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Start aiotasks for waiting tasks
     manager.run()
 

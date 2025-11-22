@@ -3,8 +3,7 @@
 Tests all CLI commands, subcommands, and options with 100% coverage.
 """
 
-import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner

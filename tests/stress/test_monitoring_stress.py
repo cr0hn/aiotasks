@@ -39,7 +39,7 @@ class TestMetricsStress:
 
         # Should handle high frequency (< 5 seconds for 10k)
         assert elapsed < 5.0
-        print(f"\n  Recorded 10,000 metrics in {elapsed:.2f}s ({10000/elapsed:.0f} ops/s)")
+        print(f"\n  Recorded 10,000 metrics in {elapsed:.2f}s ({10000 / elapsed:.0f} ops/s)")
 
     async def test_concurrent_metric_updates(self):
         """Test concurrent metric updates from multiple tasks."""
@@ -162,9 +162,7 @@ class TestRateLimitingStress:
         start = time.time()
 
         # 100 keys, 50 acquires each = 5,000 total
-        all_results = await asyncio.gather(
-            *[acquire_for_key(i, 50) for i in range(100)]
-        )
+        all_results = await asyncio.gather(*[acquire_for_key(i, 50) for i in range(100)])
 
         elapsed = time.time() - start
 
@@ -299,7 +297,7 @@ class TestDashboardStress:
 
         # Should be fast
         assert elapsed < 5.0
-        print(f"\n  1000 API calls in {elapsed:.2f}s ({1000/elapsed:.0f} req/s)")
+        print(f"\n  1000 API calls in {elapsed:.2f}s ({1000 / elapsed:.0f} req/s)")
 
     async def test_dashboard_with_large_dlq(self):
         """Test dashboard with large DLQ."""
@@ -404,9 +402,7 @@ class TestCombinedStress:
         start = time.time()
 
         # 5000 operations
-        results = await asyncio.gather(
-            *[metered_limited_operation(i) for i in range(5000)]
-        )
+        results = await asyncio.gather(*[metered_limited_operation(i) for i in range(5000)])
 
         elapsed = time.time() - start
 

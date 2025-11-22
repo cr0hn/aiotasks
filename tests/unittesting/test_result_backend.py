@@ -105,7 +105,7 @@ class TestTaskResult:
         assert "pending" in repr_str
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestMemoryResultBackend:
     """Test MemoryResultBackend."""
 
@@ -220,7 +220,7 @@ class TestMemoryResultBackend:
             assert result.result == i
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestRedisResultBackend:
     """Test RedisResultBackend."""
 
@@ -255,7 +255,7 @@ class TestRedisResultBackend:
             build_result_backend("invalid://backend")
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestResultBackendEdgeCases:
     """Test edge cases and error handling."""
 
@@ -363,7 +363,7 @@ class TestResultBackendEdgeCases:
             assert value == 999
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestResultBackendCleanup:
     """Test cleanup and TTL functionality."""
 

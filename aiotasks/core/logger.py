@@ -9,7 +9,9 @@ from colorlog import ColoredFormatter
 CONSOLE_LEVEL = 1000
 
 
-def console(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
+def console(
+    self: logging.Logger, message: str, *args: Any, **kwargs: Any
+) -> None:  # pragma: no cover
     """Log a message with console level."""
     if self.isEnabledFor(CONSOLE_LEVEL):
         self._log(CONSOLE_LEVEL, message, args, **kwargs)
@@ -68,7 +70,9 @@ def setup_file_logger(location_file_name: str) -> None:
     logger = logging.getLogger(location_file_name)
 
     # Set file log format
-    file_format = logging.Formatter("[%(levelname)s] %(asctime)s - %(message)s", "%Y-%m-%d %H:%M:%S")
+    file_format = logging.Formatter(
+        "[%(levelname)s] %(asctime)s - %(message)s", "%Y-%m-%d %H:%M:%S"
+    )
 
     log_path = Path.cwd() / "aiotasks.log"
     log_file = logging.FileHandler(filename=log_path)

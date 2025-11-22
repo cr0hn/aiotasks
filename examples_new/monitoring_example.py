@@ -17,9 +17,7 @@ async def main():
     app = AioTasks("monitoring_app", broker="redis://localhost:6379/0")
 
     # Setup Prometheus metrics with HTTP server on port 9090
-    metrics = app.setup_metrics(
-        namespace="myapp", enable_http_server=True, http_port=9090
-    )
+    metrics = app.setup_metrics(namespace="myapp", enable_http_server=True, http_port=9090)
 
     print("📊 Prometheus metrics server started on http://localhost:9090/metrics")
     print()
@@ -75,7 +73,7 @@ async def main():
     print("  - aiotasks_queue_length (gauge)")
     print("  - aiotasks_dlq_size (gauge)")
     print()
-    print(f"📈 View metrics at: http://localhost:9090/metrics")
+    print("📈 View metrics at: http://localhost:9090/metrics")
     print()
     print("Example Prometheus queries:")
     print("  - rate(aiotasks_tasks_total[5m])")

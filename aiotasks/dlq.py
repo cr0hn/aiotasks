@@ -45,9 +45,7 @@ class FailedTask:
     def from_dict(cls, data: dict[str, Any]) -> "FailedTask":
         """Create from dictionary."""
         failed_at = (
-            datetime.fromisoformat(data["failed_at"])
-            if "failed_at" in data
-            else datetime.utcnow()
+            datetime.fromisoformat(data["failed_at"]) if "failed_at" in data else datetime.utcnow()
         )
 
         return cls(
@@ -129,9 +127,7 @@ class DeadLetterQueue:
 
         # Check size limit
         if len(self._tasks) >= self.max_size:
-            log.warning(
-                f"DLQ size limit reached ({self.max_size}), removing oldest task"
-            )
+            log.warning(f"DLQ size limit reached ({self.max_size}), removing oldest task")
             # Remove oldest task
             oldest = min(self._tasks.values(), key=lambda t: t.failed_at)
             del self._tasks[oldest.task_id]
@@ -227,9 +223,7 @@ class DeadLetterQueue:
 
         # Clear only specific task type
         to_remove = [
-            task_id
-            for task_id, task in self._tasks.items()
-            if task.task_name == task_name
+            task_id for task_id, task in self._tasks.items() if task.task_name == task_name
         ]
 
         for task_id in to_remove:
@@ -336,14 +330,10 @@ class DeadLetterQueue:
             "max_size": self.max_size,
             "by_task_name": task_counts,
             "oldest_failure": (
-                min(t.failed_at for t in self._tasks.values()).isoformat()
-                if self._tasks
-                else None
+                min(t.failed_at for t in self._tasks.values()).isoformat() if self._tasks else None
             ),
             "newest_failure": (
-                max(t.failed_at for t in self._tasks.values()).isoformat()
-                if self._tasks
-                else None
+                max(t.failed_at for t in self._tasks.values()).isoformat() if self._tasks else None
             ),
         }
 
@@ -428,9 +418,7 @@ class RedisDLQ(DeadLetterQueue):
             {task_id: failed_task.failed_at.timestamp()},
         )
 
-        log.warning(
-            f"Task {task_id} ({task_name}) added to Redis DLQ after {retry_count} retries"
-        )
+        log.warning(f"Task {task_id} ({task_name}) added to Redis DLQ after {retry_count} retries")
 
     async def get_task(self, task_id: str) -> FailedTask | None:
         """Get failed task from Redis."""
@@ -451,7 +439,7 @@ class RedisDLQ(DeadLetterQueue):
 
 
 __all__ = (
-    "FailedTask",
     "DeadLetterQueue",
+    "FailedTask",
     "RedisDLQ",
 )

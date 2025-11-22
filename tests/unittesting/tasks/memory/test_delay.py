@@ -14,7 +14,6 @@ log = logging.getLogger("aiotasks")
 # Testing @task decorator
 # -------------------------------------------------------------------------
 def test_memory_delay_task_decorator_oks(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     globals()["test_memory_delay_task_decorator_oks_finished"] = False
@@ -39,7 +38,6 @@ def test_memory_delay_task_decorator_oks(event_loop):
 
 
 def test_memory_delay_task_decorator_timeout_raises(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     globals()["test_memory_delay_task_decorator_timeout_raises_finished_tasks"] = False
@@ -65,7 +63,6 @@ def test_memory_delay_task_decorator_timeout_raises(event_loop):
 
 
 def test_memory_delay_task_decorator_check_correct_timeout_reached(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     _start = time.time()
@@ -92,13 +89,11 @@ def test_memory_delay_task_decorator_check_correct_timeout_reached(event_loop):
 
 
 def test_memory_delay_task_decorator_invalid_function(event_loop):
-
     import logging
 
     logger = logging.getLogger("aiotasks")
 
     class CustomLogger(logging.StreamHandler):
-
         def __init__(self):
             super(CustomLogger, self).__init__()
             self.content = []
@@ -112,16 +107,18 @@ def test_memory_delay_task_decorator_invalid_function(event_loop):
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     async def run():
-
         # Send an invalid task name
         task_id = uuid.uuid4().hex
 
-        await manager._task_queue.put((manager.task_list_name,
-                                      msgpack.packb(dict(task_id=task_id,
-                                                         function="non_exist",
-                                                         args=[],
-                                                         kwargs={}),
-                                                    use_bin_type=True)))
+        await manager._task_queue.put(
+            (
+                manager.task_list_name,
+                msgpack.packb(
+                    dict(task_id=task_id, function="non_exist", args=[], kwargs={}),
+                    use_bin_type=True,
+                ),
+            )
+        )
 
         manager.run()
 
@@ -134,14 +131,12 @@ def test_memory_delay_task_decorator_invalid_function(event_loop):
 
 
 def test_memory_delay_task_decorator_invalid_task_id_format(event_loop):
-
     import logging
     import random
 
     logger = logging.getLogger("aiotasks")
 
     class CustomLogger(logging.StreamHandler):
-
         def __init__(self):
             super(CustomLogger, self).__init__()
             self.content = []
@@ -164,12 +159,20 @@ def test_memory_delay_task_decorator_invalid_task_id_format(event_loop):
         manager.run()
 
         # Send an invalid task name
-        await manager._task_queue.put((manager.task_list_name,
-                                       msgpack.packb(dict(task_id=task_id,
-                                                          function="task_test_memory_delay_task_decorator_invalid_task_id_format",
-                                                          args=[],
-                                                          kwargs={}),
-                                                     use_bin_type=True)))
+        await manager._task_queue.put(
+            (
+                manager.task_list_name,
+                msgpack.packb(
+                    dict(
+                        task_id=task_id,
+                        function="task_test_memory_delay_task_decorator_invalid_task_id_format",
+                        args=[],
+                        kwargs={},
+                    ),
+                    use_bin_type=True,
+                ),
+            )
+        )
 
         await manager.wait(timeout=0.5, exit_on_finish=False, wait_timeout=0.1)
 
@@ -194,7 +197,9 @@ def test_memory_delay_task_decorator_custom_task_name(event_loop):
     event_loop.run_until_complete(run())
     manager.stop()
 
-    assert "custom_test_memory_delay_task_decorator_custom_name" in manager.task_available_tasks.keys()
+    assert (
+        "custom_test_memory_delay_task_decorator_custom_name" in manager.task_available_tasks.keys()
+    )
 
 
 # -------------------------------------------------------------------------
@@ -236,8 +241,10 @@ def test_memory_delay_add_task_custom_task_name(event_loop):
         manager.run()
 
         # Add task without decorator
-        manager.add_task(task_test_memory_delay_add_task_custom_task_name,
-                         name="custom_task_test_memory_delay_task_decorator_oks")
+        manager.add_task(
+            task_test_memory_delay_add_task_custom_task_name,
+            name="custom_task_test_memory_delay_task_decorator_oks",
+        )
 
         await task_test_memory_delay_add_task_custom_task_name.delay()
 
@@ -274,12 +281,17 @@ def test_memory_delay_add_task_non_coroutine_as_input(event_loop):
         manager.run()
 
         # Add task without decorator
-        manager.add_task(task_test_memory_delay_add_task_non_coroutine_as_input,
-                         name="custom_task_test_memory_delay_task_decorator_oks")
+        manager.add_task(
+            task_test_memory_delay_add_task_non_coroutine_as_input,
+            name="custom_task_test_memory_delay_task_decorator_oks",
+        )
 
     event_loop.run_until_complete(run())
     manager.stop()
 
-    assert "Function 'task_test_memory_delay_add_task_non_coroutine_as_input' is not a coroutine and can't be added as a task" in custom.content
+    assert (
+        "Function 'task_test_memory_delay_add_task_non_coroutine_as_input' is not a coroutine and can't be added as a task"
+        in custom.content
+    )
 
     # assert "custom_task_test_memory_delay_task_decorator_oks" in manager._tasks.keys()

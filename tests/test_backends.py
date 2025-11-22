@@ -10,7 +10,7 @@ import pytest
 from aiotasks import build_manager
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_build_manager_memory():
     """Test building a memory backend manager."""
     manager = build_manager(
@@ -30,7 +30,7 @@ async def test_build_manager_memory():
     manager.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_memory_backend_task_execution():
     """Test task execution with memory backend."""
     manager = build_manager("memory://", prefix="test")
@@ -50,7 +50,7 @@ async def test_memory_backend_task_execution():
     assert executed is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_memory_backend_multiple_tasks():
     """Test multiple tasks with memory backend."""
     manager = build_manager("memory://", prefix="test", concurrency=3)
@@ -74,7 +74,7 @@ async def test_memory_backend_multiple_tasks():
     assert set(results) == {0, 1, 2, 3, 4}
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_memory_backend_task_with_args_kwargs():
     """Test task with args and kwargs on memory backend."""
     manager = build_manager("memory://")
@@ -99,7 +99,7 @@ async def test_memory_backend_task_with_args_kwargs():
     assert result["operation"] == "multiply"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_memory_backend_add_task():
     """Test add_task method on memory backend."""
     manager = build_manager("memory://")
@@ -120,7 +120,7 @@ async def test_memory_backend_add_task():
     assert executed is True
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_memory_backend_custom_task_name():
     """Test custom task name with memory backend."""
     manager = build_manager("memory://")
@@ -132,7 +132,7 @@ async def test_memory_backend_custom_task_name():
     assert "my_custom_task_name" in manager.task_available_tasks
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_memory_backend_concurrency_limit():
     """Test concurrency limit on memory backend."""
     manager = build_manager("memory://", concurrency=2)
@@ -159,7 +159,7 @@ async def test_memory_backend_concurrency_limit():
     assert max_concurrent <= 2
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_backend_dsn_variants():
     """Test different DSN formats."""
     # Memory
@@ -183,7 +183,7 @@ async def test_backend_dsn_variants():
     manager4.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_memory_has_pending_tasks():
     """Test has_pending_tasks method."""
     manager = build_manager("memory://")
@@ -205,7 +205,7 @@ async def test_memory_has_pending_tasks():
     manager.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_memory_cleanup_old_tasks():
     """Test cleanup_old_tasks method."""
     manager = build_manager("memory://", task_ttl=1)
@@ -228,7 +228,7 @@ async def test_memory_cleanup_old_tasks():
     manager.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_manager_run_stop_cycle():
     """Test run/stop cycle."""
     manager = build_manager("memory://")
@@ -250,7 +250,7 @@ async def test_manager_run_stop_cycle():
     manager.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_task_ttl_configuration():
     """Test task TTL configuration."""
     manager = build_manager("memory://", task_ttl=300)
@@ -258,7 +258,7 @@ async def test_task_ttl_configuration():
     assert manager.task_ttl == 300
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_max_retries_configuration():
     """Test max retries configuration."""
     manager = build_manager("memory://", max_retries=10)
@@ -266,7 +266,7 @@ async def test_max_retries_configuration():
     assert manager.max_retries == 10
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_prefix_configuration():
     """Test prefix configuration."""
     manager = build_manager("memory://", prefix="my_custom_prefix")

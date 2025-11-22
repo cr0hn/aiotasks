@@ -161,7 +161,7 @@ def worker(
 
 @cli.group()
 @click.pass_context
-def inspect(ctx: click.Context) -> None:  # noqa: ARG001
+def inspect(ctx: click.Context) -> None:
     """Inspect running workers.
 
     Examples:
@@ -201,7 +201,7 @@ def registered(ctx: click.Context) -> None:  # noqa: ARG001
 
 @cli.group()
 @click.pass_context
-def control(ctx: click.Context) -> None:  # noqa: ARG001
+def control(ctx: click.Context) -> None:
     """Control workers remotely.
 
     Examples:
@@ -244,8 +244,12 @@ def pool_restart(ctx: click.Context) -> None:  # noqa: ARG001
     help="Logging level",
 )
 @click.option("--enable-cors/--no-cors", default=True, help="Enable CORS (default: enabled)")
-@click.option("--metrics/--no-metrics", default=True, help="Enable Prometheus metrics (default: enabled)")
-@click.option("--metrics-port", type=int, default=9090, help="Prometheus metrics port (default: 9090)")
+@click.option(
+    "--metrics/--no-metrics", default=True, help="Enable Prometheus metrics (default: enabled)"
+)
+@click.option(
+    "--metrics-port", type=int, default=9090, help="Prometheus metrics port (default: 9090)"
+)
 @click.pass_context
 def dashboard(
     ctx: click.Context,

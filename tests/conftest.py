@@ -50,13 +50,13 @@ async def memory_app():
     app.stop()
 
 
-@pytest.fixture()
+@pytest.fixture
 def task_timeout() -> float:
     """Default timeout for task execution."""
     return 2.0
 
 
-@pytest.fixture()
+@pytest.fixture
 def wait_timeout() -> float:
     """Default timeout for waiting between polls."""
     return 0.1

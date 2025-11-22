@@ -28,9 +28,7 @@ def redis_instance():
         redis_bin = os.path.join(os.path.dirname(inspect.getfile(redislite)), "bin", "redis-server")
 
         # Launch Redis server
-        p = subprocess.Popen([redis_bin,
-                              "--port", port,
-                              "--bind", host])
+        p = subprocess.Popen([redis_bin, "--port", port, "--bind", host])
 
         r = redis.Redis(host=host, port=int(port))
 

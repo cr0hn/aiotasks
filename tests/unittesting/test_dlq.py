@@ -122,7 +122,7 @@ class TestFailedTask:
         assert "retries=3" in repr_str
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestDeadLetterQueue:
     """Test DeadLetterQueue class."""
 
@@ -293,7 +293,7 @@ class TestDeadLetterQueue:
         assert len(tasks) <= 5
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestDLQRetry:
     """Test DLQ retry functionality."""
 
@@ -440,7 +440,7 @@ class TestDLQRetry:
         app.stop()
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestDLQStatistics:
     """Test DLQ statistics."""
 
@@ -496,7 +496,7 @@ class TestDLQStatistics:
         assert "send_email" not in stats["by_task_name"]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestDLQEdgeCases:
     """Test edge cases for DLQ."""
 

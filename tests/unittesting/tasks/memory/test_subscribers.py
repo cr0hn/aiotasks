@@ -4,14 +4,12 @@ from aiotasks import build_manager
 
 
 def test_memory_subscribers_oks(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     globals()["test_memory_subscribers_oks_finished"] = False
 
     @manager.subscribe("hello")
     async def task_test_memory_subscribers_oks(topic, data):
-
         if topic == "hello" and data == "world":
             globals()["test_memory_subscribers_oks_finished"] = True
 
@@ -31,7 +29,6 @@ def test_memory_subscribers_oks(event_loop):
 
 
 def test_memory_subscribers_no_topics(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     async def run():
@@ -81,11 +78,13 @@ def test_memory_subscribers_empty_topics(event_loop):
     manager.stop()
 
     assert len(manager.topics_subscribers) == 0
-    assert "Empty topic fount in function 'task_test_memory_subscribers_oks'. Skipping it." in custom.content
+    assert (
+        "Empty topic fount in function 'task_test_memory_subscribers_oks'. Skipping it."
+        in custom.content
+    )
 
 
 def test_memory_subscribers_duplicated_topics(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     @manager.subscribe("hello")
@@ -110,7 +109,6 @@ def test_memory_subscribers_duplicated_topics(event_loop):
 
 
 def test_memory_subscribers_timeout_raises(event_loop):
-
     manager = build_manager(dsn="memory://", loop=event_loop)
 
     globals()["test_memory_subscribers_timeout_raises_finished_tasks"] = False
@@ -134,5 +132,3 @@ def test_memory_subscribers_timeout_raises(event_loop):
     assert globals()["test_memory_subscribers_timeout_raises_finished_tasks"] is False
 
     del globals()["test_memory_subscribers_timeout_raises_finished_tasks"]
-
-

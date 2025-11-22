@@ -1,5 +1,3 @@
-
-
 from subapp import *
 
 from aiotasks import build_manager
@@ -20,7 +18,7 @@ async def run():
     await manager.wait(timeout=1, exit_on_finish=True, wait_timeout=0.2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     manager.loop.run_until_complete(run())
 
     hola()

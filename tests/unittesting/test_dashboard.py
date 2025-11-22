@@ -272,12 +272,8 @@ class TestDashboardActions:
         app = AioTasks("test_app", broker="memory://")
 
         # Add failed tasks
-        await app._dlq.add_task(
-            task_id="failed_1", task_name="test_task", error="Error 1"
-        )
-        await app._dlq.add_task(
-            task_id="failed_2", task_name="test_task", error="Error 2"
-        )
+        await app._dlq.add_task(task_id="failed_1", task_name="test_task", error="Error 1")
+        await app._dlq.add_task(task_id="failed_2", task_name="test_task", error="Error 2")
 
         dashboard = DashboardServer(app)
 
@@ -298,9 +294,7 @@ class TestDashboardActions:
         app = AioTasks("test_app", broker="memory://")
 
         # Add failed tasks
-        await app._dlq.add_task(
-            task_id="failed_1", task_name="test_task", error="Error"
-        )
+        await app._dlq.add_task(task_id="failed_1", task_name="test_task", error="Error")
 
         dashboard = DashboardServer(app)
 

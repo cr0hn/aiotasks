@@ -14,7 +14,6 @@ log = logging.getLogger("aiotasks")
 # Testing @task decorator
 # -------------------------------------------------------------------------
 def test_redis_delay_task_decorator_oks(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["test_redis_delay_task_decorator_oks_finished"] = False
@@ -39,7 +38,6 @@ def test_redis_delay_task_decorator_oks(event_loop, redis_instance):
 
 
 def test_redis_delay_task_decorator_no_port_gotten(event_loop, redis_instance):
-
     _redis_instance, _ = redis_instance.rsplit(":", maxsplit=1)
 
     manager = build_manager(dsn=_redis_instance, loop=event_loop)
@@ -66,7 +64,6 @@ def test_redis_delay_task_decorator_no_port_gotten(event_loop, redis_instance):
 
 
 def test_redis_delay_task_decorator_timeout_raises(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     globals()["test_redis_delay_task_decorator_timeout_raises_finished_tasks"] = False
@@ -92,7 +89,6 @@ def test_redis_delay_task_decorator_timeout_raises(event_loop, redis_instance):
 
 
 def test_redis_delay_task_decorator_check_correct_timeout_reached(event_loop, redis_instance):
-
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     _start = time.time()
@@ -119,13 +115,11 @@ def test_redis_delay_task_decorator_check_correct_timeout_reached(event_loop, re
 
 
 def test_redis_delay_task_decorator_invalid_function(event_loop, redis_instance):
-
     import logging
 
     logger = logging.getLogger("aiotasks")
 
     class CustomLogger(logging.StreamHandler):
-
         def __init__(self):
             super(CustomLogger, self).__init__()
             self.content = []
@@ -139,15 +133,13 @@ def test_redis_delay_task_decorator_invalid_function(event_loop, redis_instance)
     manager = build_manager(dsn=redis_instance, loop=event_loop)
 
     async def run():
-
         # Send an invalid task name
         task_id = uuid.uuid4().hex
 
-        await manager._redis_poller.lpush(manager.task_list_name,
-                                          msgpack.packb(dict(task_id=task_id,
-                                                             function="non_exist",
-                                                             args=(),
-                                                             kwargs={})))
+        await manager._redis_poller.lpush(
+            manager.task_list_name,
+            msgpack.packb(dict(task_id=task_id, function="non_exist", args=(), kwargs={})),
+        )
 
         manager.run()
 
@@ -160,14 +152,12 @@ def test_redis_delay_task_decorator_invalid_function(event_loop, redis_instance)
 
 
 def test_redis_delay_task_decorator_invalid_task_id_format(event_loop, redis_instance):
-
     import logging
     import random
 
     logger = logging.getLogger("aiotasks")
 
     class CustomLogger(logging.StreamHandler):
-
         def __init__(self):
             super(CustomLogger, self).__init__()
             self.content = []
@@ -190,11 +180,17 @@ def test_redis_delay_task_decorator_invalid_task_id_format(event_loop, redis_ins
         manager.run()
 
         # Send an invalid task name
-        await manager._redis_poller.lpush(manager.task_list_name,
-                                          msgpack.packb(dict(task_id=task_id,
-                                                             function="task_test_redis_delay_task_decorator_invalid_task_id_format",
-                                                             args=(),
-                                                             kwargs={})))
+        await manager._redis_poller.lpush(
+            manager.task_list_name,
+            msgpack.packb(
+                dict(
+                    task_id=task_id,
+                    function="task_test_redis_delay_task_decorator_invalid_task_id_format",
+                    args=(),
+                    kwargs={},
+                )
+            ),
+        )
 
         await manager.wait(timeout=0.5, exit_on_finish=False, wait_timeout=0.1)
 
@@ -219,7 +215,9 @@ def test_redis_delay_task_decorator_custom_task_name(event_loop, redis_instance)
     event_loop.run_until_complete(run())
     manager.stop()
 
-    assert "custom_test_redis_delay_task_decorator_custom_name" in manager.task_available_tasks.keys()
+    assert (
+        "custom_test_redis_delay_task_decorator_custom_name" in manager.task_available_tasks.keys()
+    )
 
 
 # -------------------------------------------------------------------------
@@ -261,8 +259,10 @@ def test_redis_delay_add_task_custom_task_name(event_loop, redis_instance):
         manager.run()
 
         # Add task without decorator
-        manager.add_task(task_test_redis_delay_add_task_custom_task_name,
-                         name="custom_task_test_redis_delay_task_decorator_oks")
+        manager.add_task(
+            task_test_redis_delay_add_task_custom_task_name,
+            name="custom_task_test_redis_delay_task_decorator_oks",
+        )
 
         await task_test_redis_delay_add_task_custom_task_name.delay()
 
@@ -299,12 +299,17 @@ def test_redis_delay_add_task_non_coroutine_as_input(event_loop, redis_instance)
         manager.run()
 
         # Add task without decorator
-        manager.add_task(task_test_redis_delay_add_task_non_coroutine_as_input,
-                         name="custom_task_test_redis_delay_task_decorator_oks")
+        manager.add_task(
+            task_test_redis_delay_add_task_non_coroutine_as_input,
+            name="custom_task_test_redis_delay_task_decorator_oks",
+        )
 
     event_loop.run_until_complete(run())
     manager.stop()
 
-    assert "Function 'task_test_redis_delay_add_task_non_coroutine_as_input' is not a coroutine and can't be added as a task" in custom.content
+    assert (
+        "Function 'task_test_redis_delay_add_task_non_coroutine_as_input' is not a coroutine and can't be added as a task"
+        in custom.content
+    )
 
     # assert "custom_task_test_redis_delay_task_decorator_oks" in manager._tasks.keys()

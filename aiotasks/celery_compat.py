@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import socket
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 try:
@@ -228,8 +227,7 @@ def encode_celery_task(
     # Serialize based on content-type
     if serializer == "msgpack":
         return msgpack.packb(message, use_bin_type=True)
-    else:
-        return json.dumps(message).encode("utf-8")
+    return json.dumps(message).encode("utf-8")
 
 
 def decode_celery_task(message: bytes, serializer: str = "json") -> dict[str, Any]:
@@ -297,11 +295,11 @@ def is_celery_message(message: bytes | dict) -> bool:
 
 
 __all__ = (
-    "serialize_celery_message",
+    "decode_celery_task",
     "deserialize_celery_message",
     "encode_celery_task",
-    "decode_celery_task",
-    "is_celery_message",
     "generate_task_id",
     "get_hostname",
+    "is_celery_message",
+    "serialize_celery_message",
 )

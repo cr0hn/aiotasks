@@ -1,7 +1,5 @@
 """Comprehensive tests for helper functions with full coverage."""
 
-import pytest
-
 from aiotasks.helpers import parse_dsn
 
 

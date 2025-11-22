@@ -147,14 +147,12 @@ class TestRateLimitingIntegration:
         """Test rate limiting with result backend."""
         from aiotasks import AioTasks, rate_limit
 
-        app = AioTasks(
-            "test_app", broker="memory://", backend="memory://"
-        )
+        app = AioTasks("test_app", broker="memory://", backend="memory://")
 
         @app.task()
         @rate_limit("5/s")
         async def limited_task_with_result(x):
-            return x ** 2
+            return x**2
 
         # Execute tasks
         task = await limited_task_with_result.delay(5)

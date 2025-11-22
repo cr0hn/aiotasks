@@ -13,8 +13,9 @@ def test_redis_decorated_functions_has_correct_dynamic_functions(event_loop, red
     async def run():
         manager.run()
 
-        globals()["has_delay_method"] = hasattr(task_test_redis_decorated_functions_has_correct_dynamic_functions,
-                                                "delay")
+        globals()["has_delay_method"] = hasattr(
+            task_test_redis_decorated_functions_has_correct_dynamic_functions, "delay"
+        )
 
         await manager.wait(timeout=0.5, exit_on_finish=True, wait_timeout=0.2)
 
@@ -24,4 +25,3 @@ def test_redis_decorated_functions_has_correct_dynamic_functions(event_loop, red
     assert globals()["has_delay_method"] is True
 
     del globals()["has_delay_method"]
-
