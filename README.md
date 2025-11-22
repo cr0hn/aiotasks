@@ -54,6 +54,7 @@ AioTasks is a **modern, high-performance task queue** built on Python's asyncio.
 
 ## ✨ Features
 
+- **🔗 Celery Interoperability** - Full Celery Protocol v2 support! Send tasks from AioTasks, process with Celery workers (or vice versa)
 - **🎭 Celery-Compatible CLI** - Same syntax, just `aiotasks` instead of `celery`
 - **⚡ Native AsyncIO** - Built from scratch for async/await
 - **🔄 Multiple Backends** - Memory, Redis, RabbitMQ (AMQP), ZeroMQ
@@ -203,6 +204,54 @@ aiotasks -A app worker --pool=process -c 4   # Process pool
 - **async**: I/O-bound async tasks (DB queries, API calls, file I/O)
 - **thread**: Blocking I/O, legacy sync code, sync libraries
 - **process**: CPU-intensive tasks, bypasses GIL for true parallelism
+
+### 🔗 Celery Interoperability
+
+**NEW in v2.3**: Full Celery Protocol v2 compatibility! AioTasks can now interoperate with Celery workers:
+
+```python
+# Enable Celery compatibility mode
+app = AioTasks(
+    'myapp',
+    broker='redis://localhost:6379/0',
+    celery_compat=True,  # ✨ Enable Celery Protocol v2 format
+)
+
+@app.task()
+async def send_email(to: str, subject: str):
+    """This task can be processed by BOTH AioTasks and Celery workers!"""
+    return {"status": "sent", "to": to}
+
+# Queue the task - sends in Celery format
+await send_email.delay("user@example.com", "Hello")
+```
+
+**Why use this?**
+
+- 🚀 **FastAPI + Celery workers**: Use AioTasks in your modern async API, keep existing Celery workers
+- 🔄 **Gradual migration**: Migrate from Celery to AioTasks incrementally with zero downtime
+- 🏗️ **Mixed deployments**: Run both Celery and AioTasks workers processing the same queue
+- 🎯 **Best tool for each job**: Use Celery for CPU tasks, AioTasks for async I/O
+
+**Example: FastAPI with Celery workers**
+
+```python
+# FastAPI app using AioTasks (new code)
+from fastapi import FastAPI
+from aiotasks import AioTasks
+
+tasks = AioTasks('myapp', broker='redis://localhost', celery_compat=True)
+
+@app.post("/process")
+async def api_endpoint(data: dict):
+    await process_data.delay(data)  # Sent in Celery format
+    return {"status": "processing"}
+
+# Existing Celery worker - NO CHANGES NEEDED!
+# celery -A worker worker --loglevel=info
+```
+
+📚 **[Full Celery Interoperability Guide →](docs/celery_interoperability.md)**
 
 ### Integration with FastAPI
 

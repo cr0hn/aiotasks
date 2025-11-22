@@ -56,6 +56,7 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
         max_retries: int = 3,
         task_ttl: int = 3600,
         pool: str = "async",
+        celery_compat: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize the memory backend.
@@ -67,6 +68,7 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
             max_retries: Maximum number of retry attempts for failed tasks
             task_ttl: Time-to-live for tasks in seconds
             pool: Execution pool type (async, thread, or process)
+            celery_compat: Use Celery Protocol v2 message format
             **kwargs: Additional arguments (loop is deprecated)
         """
         kwargs.pop("loop", None)  # Remove deprecated loop parameter
@@ -80,6 +82,7 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
             max_retries=max_retries,
             task_ttl=task_ttl,
             pool=pool,
+            celery_compat=celery_compat,
         )
         AsyncTaskBase.__init__(self, dsn=dsn)
 
@@ -102,6 +105,7 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
         max_retries: int = 3,
         task_ttl: int = 3600,
         pool: str = "async",
+        celery_compat: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize the Redis backend.
@@ -113,6 +117,7 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
             max_retries: Maximum number of retry attempts for failed tasks
             task_ttl: Time-to-live for tasks in seconds
             pool: Execution pool type (async, thread, or process)
+            celery_compat: Use Celery Protocol v2 message format
             **kwargs: Additional arguments (loop is deprecated)
         """
         kwargs.pop("loop", None)  # Remove deprecated loop parameter
@@ -126,6 +131,7 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
             max_retries=max_retries,
             task_ttl=task_ttl,
             pool=pool,
+            celery_compat=celery_compat,
         )
         AsyncTaskBase.__init__(self, dsn=dsn)
 
@@ -153,6 +159,7 @@ if AMQP_AVAILABLE:
             max_retries: int = 3,
             task_ttl: int = 3600,
             pool: str = "async",
+            celery_compat: bool = False,
             **kwargs: Any,
         ) -> None:
             """Initialize the AMQP backend.
@@ -164,6 +171,7 @@ if AMQP_AVAILABLE:
                 max_retries: Maximum number of retry attempts for failed tasks
                 task_ttl: Time-to-live for tasks in seconds
                 pool: Execution pool type (async, thread, or process)
+                celery_compat: Use Celery Protocol v2 message format
                 **kwargs: Additional arguments (loop is deprecated)
             """
             if not AMQP_AVAILABLE:
@@ -181,6 +189,7 @@ if AMQP_AVAILABLE:
                 max_retries=max_retries,
                 task_ttl=task_ttl,
                 pool=pool,
+                celery_compat=celery_compat,
             )
             AsyncTaskBase.__init__(self, dsn=dsn)
 
@@ -207,6 +216,7 @@ if ZMQ_AVAILABLE:
             max_retries: int = 3,
             task_ttl: int = 3600,
             pool: str = "async",
+            celery_compat: bool = False,
             **kwargs: Any,
         ) -> None:
             """Initialize the ZeroMQ backend.
@@ -218,6 +228,7 @@ if ZMQ_AVAILABLE:
                 max_retries: Maximum number of retry attempts for failed tasks
                 task_ttl: Time-to-live for tasks in seconds
                 pool: Execution pool type (async, thread, or process)
+                celery_compat: Use Celery Protocol v2 message format
                 **kwargs: Additional arguments (loop is deprecated)
             """
             if not ZMQ_AVAILABLE:
@@ -235,6 +246,7 @@ if ZMQ_AVAILABLE:
                 max_retries=max_retries,
                 task_ttl=task_ttl,
                 pool=pool,
+                celery_compat=celery_compat,
             )
             AsyncTaskBase.__init__(self, dsn=dsn)
 
@@ -248,6 +260,7 @@ def build_manager(
     max_retries: int = 3,
     task_ttl: int = 3600,
     pool: str = "async",
+    celery_compat: bool = False,
     **kwargs: Any,
 ) -> AsyncTaskBase:
     """Build and configure a task manager backend.
@@ -269,6 +282,8 @@ def build_manager(
             - "async": asyncio coroutine pool (best for I/O-bound async tasks)
             - "thread": ThreadPoolExecutor (best for blocking I/O, sync libraries)
             - "process": ProcessPoolExecutor (best for CPU-intensive tasks)
+        celery_compat: Use Celery Protocol v2 message format for interoperability (default: False)
+            When True, tasks are serialized in Celery's format for processing by Celery workers
         **kwargs: Additional backend-specific arguments
 
     Returns:
@@ -312,6 +327,12 @@ def build_manager(
         ...     pool="process",
         ...     concurrency=4
         ... )
+        >>>
+        >>> # Create with Celery compatibility for interoperability
+        >>> manager = build_manager(
+        ...     "redis://localhost:6379/0",
+        ...     celery_compat=True
+        ... )
     """
     # Deprecated loop parameter handling
     kwargs.pop("loop", None)
@@ -327,9 +348,13 @@ def build_manager(
         log.warning(f"Invalid pool type '{pool}', defaulting to 'async'")
         pool = "async"
 
+    # Log Celery compatibility mode
+    if celery_compat:
+        log.info("Celery compatibility mode enabled - using Celery Protocol v2 format")
+
     # Select backend based on DSN scheme
     if dsn.startswith("memory"):
-        log.debug(f"Creating memory backend with pool={pool}")
+        log.debug(f"Creating memory backend with pool={pool}, celery_compat={celery_compat}")
         manager = MemoryBackend(
             dsn=dsn,
             prefix=prefix,
@@ -337,9 +362,10 @@ def build_manager(
             max_retries=max_retries,
             task_ttl=task_ttl,
             pool=pool,
+            celery_compat=celery_compat,
         )
     elif dsn.startswith("redis"):
-        log.debug(f"Creating Redis backend with DSN: {dsn}, pool={pool}")
+        log.debug(f"Creating Redis backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}")
         manager = RedisBackend(
             dsn=dsn,
             prefix=prefix,
@@ -347,9 +373,10 @@ def build_manager(
             max_retries=max_retries,
             task_ttl=task_ttl,
             pool=pool,
+            celery_compat=celery_compat,
         )
     elif dsn.startswith("amqp"):
-        log.debug(f"Creating AMQP backend with DSN: {dsn}, pool={pool}")
+        log.debug(f"Creating AMQP backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}")
         manager = AMQPBackend(
             dsn=dsn,
             prefix=prefix,
@@ -357,9 +384,10 @@ def build_manager(
             max_retries=max_retries,
             task_ttl=task_ttl,
             pool=pool,
+            celery_compat=celery_compat,
         )
     elif dsn.startswith("zmq"):
-        log.debug(f"Creating ZMQ backend with DSN: {dsn}, pool={pool}")
+        log.debug(f"Creating ZMQ backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}")
         manager = ZMQBackend(
             dsn=dsn,
             prefix=prefix,
@@ -367,6 +395,7 @@ def build_manager(
             max_retries=max_retries,
             task_ttl=task_ttl,
             pool=pool,
+            celery_compat=celery_compat,
         )
     else:
         msg = (

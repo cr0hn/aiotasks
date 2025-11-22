@@ -9,6 +9,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Celery Protocol v2 Interoperability
+
+**Major Feature**: Full compatibility with Celery workers through Celery Protocol v2 support
+
+AioTasks can now seamlessly interoperate with Celery, enabling:
+
+- **FastAPI + Celery**: Use AioTasks in your FastAPI app, process tasks with existing Celery workers
+- **Gradual Migration**: Migrate from Celery to AioTasks incrementally with zero downtime
+- **Mixed Deployments**: Run both Celery and AioTasks workers processing the same queue
+- **Best of Both Worlds**: Use Celery for CPU tasks, AioTasks for async I/O tasks
+
+**Python API**:
+```python
+# Enable Celery compatibility
+app = AioTasks(
+    'myapp',
+    broker='redis://localhost:6379/0',
+    celery_compat=True,  # ✨ Sends/receives Celery Protocol v2 messages
+)
+
+@app.task()
+async def send_email(to: str, subject: str):
+    # This task can be processed by BOTH AioTasks and Celery workers!
+    return {"status": "sent", "to": to}
+
+# Queue the task - sent in Celery format
+await send_email.delay("user@example.com", "Hello")
+```
+
+**Celery Worker** (processes tasks sent by AioTasks):
+```python
+from celery import Celery
+
+app = Celery('myapp', broker='redis://localhost:6379/0')
+
+@app.task(name='send_email')
+def send_email(to: str, subject: str):
+    # Celery worker processes tasks sent by AioTasks!
+    return {"status": "sent", "to": to}
+```
+
+**Key Features**:
+- ✅ **Full Celery Protocol v2 support**: properties, headers, body
+- ✅ **Auto-detection**: Workers auto-detect and process both Celery and AioTasks formats
+- ✅ **UUID4 task IDs**: Celery-compatible task ID generation
+- ✅ **JSON serialization**: Celery default format (also supports msgpack)
+- ✅ **No code changes**: Existing Celery workers work without modifications
+- ✅ **Backward compatible**: Default is AioTasks native format (celery_compat=False)
+
+**Implementation**:
+- New module: `aiotasks/celery_compat.py`
+  - `serialize_celery_message()` - Create Celery v2 message structure
+  - `deserialize_celery_message()` - Parse Celery v2 messages
+  - `encode_celery_task()` - Full message encoding for broker
+  - `decode_celery_task()` - Full message decoding from broker
+  - `is_celery_message()` - Auto-detect message format
+  - `generate_task_id()` - UUID4 generation
+- Updated `AsyncTaskDelayBase`: Auto-detection of message format
+- Updated `AsyncWaitContextManager`: Dual-format message building
+- All backends support `celery_compat` parameter
+
+**Documentation**:
+- Comprehensive guide: `docs/celery_interoperability.md`
+- Complete working example with Docker Compose: `examples_new/celery_interop/`
+  - FastAPI producer using AioTasks
+  - Celery worker processing tasks
+  - AioTasks worker (alternative)
+  - Docker Compose stack with Redis and Flower
+
+**Tests**:
+- 29 unit tests covering all serialization/deserialization scenarios
+- 8 integration tests verifying interoperability
+- Round-trip tests (encode → decode)
+- Format detection tests
+
+**Use Cases**:
+1. **Gradual Migration**: Migrate from Celery to AioTasks without downtime
+2. **FastAPI + Legacy Workers**: Modern async API with existing Celery infrastructure
+3. **Mixed Worker Pools**: CPU tasks → Celery, I/O tasks → AioTasks
+4. **Multi-Language**: Share tasks between Python, Node.js, etc. (via Celery protocol)
+
 #### Pool Support - Multiple Execution Strategies
 
 **Major Feature**: Support for thread and process pools (Celery-like pool types)
@@ -77,10 +158,12 @@ aiotasks -A app worker --pool=process -c 4
 
 ### Changed
 
-- `AsyncTaskDelayBase.__init__()`: Added `pool` parameter
-- `AioTasks.__init__()`: Added `pool` parameter
-- `build_manager()`: Added `pool` parameter
-- All backend classes: Added `pool` parameter support
+- `AsyncTaskDelayBase.__init__()`: Added `pool` and `celery_compat` parameters
+- `AsyncWaitContextManager.__init__()`: Added `celery_compat` parameter (5th positional arg)
+- `AioTasks.__init__()`: Added `pool` and `celery_compat` parameters
+- `build_manager()`: Added `pool` and `celery_compat` parameters
+- All backend classes (Memory, Redis, AMQP, ZMQ): Added `pool` and `celery_compat` parameter support
+- `AsyncTaskDelayMemory`, `AsyncTaskDelayRedis`, `AsyncTaskDelayAMQP`, `AsyncTaskDelayZMQ`: Updated to pass `pool` and `celery_compat` to parent
 - Worker CLI: Added `-P/--pool` parameter
 - Worker model: Added `pool` field with validation
 

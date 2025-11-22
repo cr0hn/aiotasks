@@ -179,6 +179,8 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
         concurrency: int = 5,
         max_retries: int = 3,
         task_ttl: int = 3600,
+        pool: str = "async",
+        celery_compat: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize ZeroMQ delay backend with PUSH/PULL pattern.
@@ -189,6 +191,8 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
             concurrency: Maximum number of concurrent tasks
             max_retries: Maximum number of retry attempts for failed tasks
             task_ttl: Time-to-live for tasks in seconds
+            pool: Execution pool type (async, thread, or process)
+            celery_compat: Use Celery Protocol v2 message format
             **kwargs: Additional arguments (loop is deprecated and ignored)
         """
         kwargs.pop("loop", None)
@@ -197,6 +201,8 @@ class AsyncTaskDelayZMQ(AsyncTaskDelayBase):
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
+            celery_compat=celery_compat,
         )
 
         config: DSNConfig = parse_dsn(dsn, default_port=5556)
