@@ -4,9 +4,9 @@
 Command-line interface that mimics Celery's CLI structure and parameters.
 """
 
+from __future__ import annotations
+
 import logging
-import sys
-from pathlib import Path
 
 import click
 
@@ -32,7 +32,13 @@ log = logging.getLogger("aiotasks")
 )
 @click.option("--version", is_flag=True, help="Show version and exit")
 @click.pass_context
-def cli(ctx: click.Context, app: str | None, broker: str | None, loglevel: str, version: bool) -> None:
+def cli(
+    ctx: click.Context,
+    app: str | None,
+    broker: str | None,
+    loglevel: str,
+    version: bool,
+) -> None:
     """AioTasks - Celery-like async task queue for Python.
 
     Usage:
@@ -66,8 +72,8 @@ def cli(ctx: click.Context, app: str | None, broker: str | None, loglevel: str, 
 @cli.command()
 @click.option("-A", "--app", help="Application instance (module.path:attr)")
 @click.option("-c", "--concurrency", type=int, default=None, help="Number of concurrent workers")
-@click.option("-Q", "--queues", help="Comma-separated list of queues to consume from")
-@click.option("-n", "--hostname", help="Custom hostname (e.g., worker1@%%h)")
+@click.option("-Q", "--queues", help="Comma-separated list of queues")
+@click.option("-n", "--hostname", help="Custom hostname")
 @click.option(
     "-l",
     "--loglevel",
@@ -75,11 +81,6 @@ def cli(ctx: click.Context, app: str | None, broker: str | None, loglevel: str, 
     help="Logging level",
 )
 @click.option("--broker", help="Broker URL")
-@click.option("--max-tasks-per-child", type=int, help="Max tasks before recycling worker")
-@click.option("--autoscale", help="Autoscaling settings (max,min)")
-@click.option("--pidfile", type=click.Path(), help="Path to PID file")
-@click.option("--logfile", type=click.Path(), help="Path to log file")
-@click.option("--detach", is_flag=True, help="Run worker in background")
 @click.pass_context
 def worker(
     ctx: click.Context,
@@ -89,11 +90,6 @@ def worker(
     hostname: str | None,
     loglevel: str | None,
     broker: str | None,
-    max_tasks_per_child: int | None,
-    autoscale: str | None,
-    pidfile: Path | None,
-    logfile: Path | None,
-    detach: bool,
 ) -> None:
     """Start worker instance.
 
@@ -109,14 +105,14 @@ def worker(
         ctx.exit(1)
 
     # Get other params from context
-    loglevel = loglevel or ctx.obj.get("loglevel", "INFO")
+    final_loglevel = loglevel or ctx.obj.get("loglevel", "INFO")
     broker_url = broker or ctx.obj.get("broker")
 
-    click.echo(f"🚀 Starting AioTasks worker...")
+    click.echo("🚀 Starting AioTasks worker...")
     click.echo(f"   App: {app_path}")
     click.echo(f"   Broker: {broker_url or 'default'}")
     click.echo(f"   Concurrency: {concurrency or 'default'}")
-    click.echo(f"   Log level: {loglevel}")
+    click.echo(f"   Log level: {final_loglevel}")
 
     if queues:
         click.echo(f"   Queues: {queues}")
@@ -127,17 +123,18 @@ def worker(
     try:
         from aiotasks.actions.worker.console import launch_aiotasks_worker_in_console
 
-        launch_aiotasks_worker_in_console(
-            {
-                "application": app_path,
-                "log_level": loglevel,
-                "concurrency": concurrency or 5,
-                "verbosity": 1 if loglevel == "DEBUG" else 0,
-            }
-        )
+        config = {
+            "application": app_path,
+            "log_level": final_loglevel,
+            "concurrency": concurrency or 5,
+            "verbosity": 1 if final_loglevel == "DEBUG" else 0,
+        }
+
+        launch_aiotasks_worker_in_console(config)
+
     except Exception as e:
         click.echo(f"Error starting worker: {e}", err=True)
-        if loglevel == "DEBUG":
+        if final_loglevel == "DEBUG":
             import traceback
 
             traceback.print_exc()
@@ -151,19 +148,18 @@ def worker(
 
 @cli.group()
 @click.pass_context
-def inspect(ctx: click.Context) -> None:
+def inspect(ctx: click.Context) -> None:  # noqa: ARG001
     """Inspect running workers.
 
     Examples:
         aiotasks inspect active
         aiotasks inspect stats
     """
-    pass
 
 
 @inspect.command()
 @click.pass_context
-def active(ctx: click.Context) -> None:
+def active(ctx: click.Context) -> None:  # noqa: ARG001
     """Show active tasks."""
     click.echo("📊 Active tasks:")
     click.echo("   (Not yet implemented - requires backend support)")
@@ -171,7 +167,7 @@ def active(ctx: click.Context) -> None:
 
 @inspect.command()
 @click.pass_context
-def stats(ctx: click.Context) -> None:
+def stats(ctx: click.Context) -> None:  # noqa: ARG001
     """Show worker statistics."""
     click.echo("📈 Worker statistics:")
     click.echo("   (Not yet implemented - requires backend support)")
@@ -179,7 +175,7 @@ def stats(ctx: click.Context) -> None:
 
 @inspect.command()
 @click.pass_context
-def registered(ctx: click.Context) -> None:
+def registered(ctx: click.Context) -> None:  # noqa: ARG001
     """Show registered tasks."""
     click.echo("📋 Registered tasks:")
     click.echo("   (Not yet implemented - requires backend support)")
@@ -192,19 +188,18 @@ def registered(ctx: click.Context) -> None:
 
 @cli.group()
 @click.pass_context
-def control(ctx: click.Context) -> None:
+def control(ctx: click.Context) -> None:  # noqa: ARG001
     """Control workers remotely.
 
     Examples:
         aiotasks control shutdown
         aiotasks control pool_restart
     """
-    pass
 
 
 @control.command()
 @click.pass_context
-def shutdown(ctx: click.Context) -> None:
+def shutdown(ctx: click.Context) -> None:  # noqa: ARG001
     """Shutdown worker(s)."""
     click.echo("🛑 Shutting down workers...")
     click.echo("   (Not yet implemented - requires backend support)")
@@ -212,7 +207,7 @@ def shutdown(ctx: click.Context) -> None:
 
 @control.command(name="pool-restart")
 @click.pass_context
-def pool_restart(ctx: click.Context) -> None:
+def pool_restart(ctx: click.Context) -> None:  # noqa: ARG001
     """Restart worker pool."""
     click.echo("♻️  Restarting worker pool...")
     click.echo("   (Not yet implemented - requires backend support)")
@@ -225,12 +220,8 @@ def pool_restart(ctx: click.Context) -> None:
 
 @cli.command()
 @click.pass_context
-def status(ctx: click.Context) -> None:
-    """Show cluster status.
-
-    Examples:
-        aiotasks status
-    """
+def status(ctx: click.Context) -> None:  # noqa: ARG001
+    """Show cluster status."""
     click.echo(f"AioTasks {__version__}")
     click.echo("Status: ✅ Ready")
     click.echo("")
@@ -250,11 +241,7 @@ def status(ctx: click.Context) -> None:
 @click.option("-A", "--app", help="Application instance")
 @click.pass_context
 def list(ctx: click.Context, app: str | None) -> None:
-    """List registered tasks.
-
-    Examples:
-        aiotasks -A myapp list
-    """
+    """List registered tasks."""
     app_path = app or ctx.obj.get("app")
     if not app_path:
         click.echo("Error: No application specified. Use -A/--app option.", err=True)
