@@ -55,6 +55,7 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
         concurrency: int = 5,
         max_retries: int = 3,
         task_ttl: int = 3600,
+        pool: str = "async",
         **kwargs: Any,
     ) -> None:
         """Initialize the memory backend.
@@ -65,6 +66,7 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
             concurrency: Maximum number of concurrent tasks
             max_retries: Maximum number of retry attempts for failed tasks
             task_ttl: Time-to-live for tasks in seconds
+            pool: Execution pool type (async, thread, or process)
             **kwargs: Additional arguments (loop is deprecated)
         """
         kwargs.pop("loop", None)  # Remove deprecated loop parameter
@@ -77,6 +79,7 @@ class MemoryBackend(AsyncTaskDelayMemory, AsyncTaskSubscribeMemory, AsyncTaskBas
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
         )
         AsyncTaskBase.__init__(self, dsn=dsn)
 
@@ -98,6 +101,7 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
         concurrency: int = 5,
         max_retries: int = 3,
         task_ttl: int = 3600,
+        pool: str = "async",
         **kwargs: Any,
     ) -> None:
         """Initialize the Redis backend.
@@ -108,6 +112,7 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
             concurrency: Maximum number of concurrent tasks
             max_retries: Maximum number of retry attempts for failed tasks
             task_ttl: Time-to-live for tasks in seconds
+            pool: Execution pool type (async, thread, or process)
             **kwargs: Additional arguments (loop is deprecated)
         """
         kwargs.pop("loop", None)  # Remove deprecated loop parameter
@@ -120,6 +125,7 @@ class RedisBackend(AsyncTaskSubscribeRedis, AsyncTaskDelayRedis, AsyncTaskBase):
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
         )
         AsyncTaskBase.__init__(self, dsn=dsn)
 
@@ -146,6 +152,7 @@ if AMQP_AVAILABLE:
             concurrency: int = 5,
             max_retries: int = 3,
             task_ttl: int = 3600,
+            pool: str = "async",
             **kwargs: Any,
         ) -> None:
             """Initialize the AMQP backend.
@@ -156,6 +163,7 @@ if AMQP_AVAILABLE:
                 concurrency: Maximum number of concurrent tasks
                 max_retries: Maximum number of retry attempts for failed tasks
                 task_ttl: Time-to-live for tasks in seconds
+                pool: Execution pool type (async, thread, or process)
                 **kwargs: Additional arguments (loop is deprecated)
             """
             if not AMQP_AVAILABLE:
@@ -172,6 +180,7 @@ if AMQP_AVAILABLE:
                 concurrency=concurrency,
                 max_retries=max_retries,
                 task_ttl=task_ttl,
+                pool=pool,
             )
             AsyncTaskBase.__init__(self, dsn=dsn)
 
@@ -197,6 +206,7 @@ if ZMQ_AVAILABLE:
             concurrency: int = 5,
             max_retries: int = 3,
             task_ttl: int = 3600,
+            pool: str = "async",
             **kwargs: Any,
         ) -> None:
             """Initialize the ZeroMQ backend.
@@ -207,6 +217,7 @@ if ZMQ_AVAILABLE:
                 concurrency: Maximum number of concurrent tasks
                 max_retries: Maximum number of retry attempts for failed tasks
                 task_ttl: Time-to-live for tasks in seconds
+                pool: Execution pool type (async, thread, or process)
                 **kwargs: Additional arguments (loop is deprecated)
             """
             if not ZMQ_AVAILABLE:
@@ -223,6 +234,7 @@ if ZMQ_AVAILABLE:
                 concurrency=concurrency,
                 max_retries=max_retries,
                 task_ttl=task_ttl,
+                pool=pool,
             )
             AsyncTaskBase.__init__(self, dsn=dsn)
 
@@ -235,6 +247,7 @@ def build_manager(
     concurrency: int = 5,
     max_retries: int = 3,
     task_ttl: int = 3600,
+    pool: str = "async",
     **kwargs: Any,
 ) -> AsyncTaskBase:
     """Build and configure a task manager backend.
@@ -252,6 +265,10 @@ def build_manager(
         concurrency: Maximum number of concurrent tasks (default: 5)
         max_retries: Maximum number of retry attempts for failed tasks (default: 3)
         task_ttl: Time-to-live for tasks in seconds (default: 3600)
+        pool: Execution pool type (default: "async")
+            - "async": asyncio coroutine pool (best for I/O-bound async tasks)
+            - "thread": ThreadPoolExecutor (best for blocking I/O, sync libraries)
+            - "process": ProcessPoolExecutor (best for CPU-intensive tasks)
         **kwargs: Additional backend-specific arguments
 
     Returns:
@@ -281,6 +298,20 @@ def build_manager(
         ...     max_retries=5,
         ...     task_ttl=7200
         ... )
+        >>>
+        >>> # Create with thread pool for blocking tasks
+        >>> manager = build_manager(
+        ...     "redis://localhost:6379/0",
+        ...     pool="thread",
+        ...     concurrency=20
+        ... )
+        >>>
+        >>> # Create with process pool for CPU-intensive tasks
+        >>> manager = build_manager(
+        ...     "redis://localhost:6379/0",
+        ...     pool="process",
+        ...     concurrency=4
+        ... )
     """
     # Deprecated loop parameter handling
     kwargs.pop("loop", None)
@@ -291,42 +322,51 @@ def build_manager(
         prefix = "aiotasks"
     prefix = str(prefix)
 
+    # Validate pool type
+    if pool not in ("async", "thread", "process"):
+        log.warning(f"Invalid pool type '{pool}', defaulting to 'async'")
+        pool = "async"
+
     # Select backend based on DSN scheme
     if dsn.startswith("memory"):
-        log.debug("Creating memory backend")
+        log.debug(f"Creating memory backend with pool={pool}")
         manager = MemoryBackend(
             dsn=dsn,
             prefix=prefix,
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
         )
     elif dsn.startswith("redis"):
-        log.debug("Creating Redis backend with DSN: %s", dsn)
+        log.debug(f"Creating Redis backend with DSN: {dsn}, pool={pool}")
         manager = RedisBackend(
             dsn=dsn,
             prefix=prefix,
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
         )
     elif dsn.startswith("amqp"):
-        log.debug("Creating AMQP backend with DSN: %s", dsn)
+        log.debug(f"Creating AMQP backend with DSN: {dsn}, pool={pool}")
         manager = AMQPBackend(
             dsn=dsn,
             prefix=prefix,
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
         )
     elif dsn.startswith("zmq"):
-        log.debug("Creating ZMQ backend with DSN: %s", dsn)
+        log.debug(f"Creating ZMQ backend with DSN: {dsn}, pool={pool}")
         manager = ZMQBackend(
             dsn=dsn,
             prefix=prefix,
             concurrency=concurrency,
             max_retries=max_retries,
             task_ttl=task_ttl,
+            pool=pool,
         )
     else:
         msg = (

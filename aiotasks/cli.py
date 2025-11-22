@@ -72,6 +72,13 @@ def cli(
 @cli.command()
 @click.option("-A", "--app", help="Application instance (module.path:attr)")
 @click.option("-c", "--concurrency", type=int, default=None, help="Number of concurrent workers")
+@click.option(
+    "-P",
+    "--pool",
+    type=click.Choice(["async", "thread", "process"], case_sensitive=False),
+    default=None,
+    help="Pool type: async (coroutines), thread (blocking I/O), process (CPU-intensive)",
+)
 @click.option("-Q", "--queues", help="Comma-separated list of queues")
 @click.option("-n", "--hostname", help="Custom hostname")
 @click.option(
@@ -86,6 +93,7 @@ def worker(
     ctx: click.Context,
     app: str | None,
     concurrency: int | None,
+    pool: str | None,
     queues: str | None,
     hostname: str | None,
     loglevel: str | None,
@@ -97,6 +105,8 @@ def worker(
         aiotasks -A myapp worker
         aiotasks -A myapp worker -l INFO -c 10
         aiotasks worker --app=myapp.tasks:app --concurrency=5
+        aiotasks -A myapp worker --pool=thread -c 20
+        aiotasks -A myapp worker --pool=process -c 4
     """
     # Get app from context or parameter
     app_path = app or ctx.obj.get("app")
@@ -107,11 +117,13 @@ def worker(
     # Get other params from context
     final_loglevel = loglevel or ctx.obj.get("loglevel", "INFO")
     broker_url = broker or ctx.obj.get("broker")
+    pool_type = pool or "async"
 
     click.echo("🚀 Starting AioTasks worker...")
     click.echo(f"   App: {app_path}")
     click.echo(f"   Broker: {broker_url or 'default'}")
     click.echo(f"   Concurrency: {concurrency or 'default'}")
+    click.echo(f"   Pool: {pool_type}")
     click.echo(f"   Log level: {final_loglevel}")
 
     if queues:
@@ -127,6 +139,7 @@ def worker(
             "application": app_path,
             "log_level": final_loglevel,
             "concurrency": concurrency or 5,
+            "pool": pool_type,
             "verbosity": 1 if final_loglevel == "DEBUG" else 0,
         }
 

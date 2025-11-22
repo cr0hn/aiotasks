@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - TBD
+
+### Added
+
+#### Pool Support - Multiple Execution Strategies
+
+**Major Feature**: Support for thread and process pools (Celery-like pool types)
+
+AioTasks now supports multiple execution pool types, enabling you to choose the best execution strategy for your workload:
+
+- **`async` pool** (default): asyncio coroutines - best for I/O-bound async tasks
+- **`thread` pool**: ThreadPoolExecutor - best for blocking I/O and sync libraries
+- **`process` pool**: ProcessPoolExecutor - best for CPU-intensive tasks (bypasses GIL)
+
+**Python API**:
+```python
+# Async pool (default) - I/O-bound async tasks
+app = AioTasks('myapp', broker='redis://localhost', pool='async')
+
+@app.task()
+async def fetch_data(url: str):
+    await asyncio.sleep(1)
+    return data
+
+# Thread pool - blocking I/O, sync libraries
+app = AioTasks('myapp', broker='redis://localhost', pool='thread', concurrency=20)
+
+@app.task()
+def blocking_io(file_path: str):
+    import time
+    time.sleep(1)  # Blocking call OK in thread pool
+    return result
+
+# Process pool - CPU-intensive tasks
+app = AioTasks('myapp', broker='redis://localhost', pool='process', concurrency=4)
+
+@app.task()
+def cpu_intensive(n: int):
+    return sum(i*i for i in range(n))  # True parallel execution
+```
+
+**CLI Support**:
+```bash
+# Async pool (default)
+aiotasks -A app worker -c 10
+
+# Thread pool for blocking tasks
+aiotasks -A app worker --pool=thread -c 20
+
+# Process pool for CPU-intensive tasks
+aiotasks -A app worker --pool=process -c 4
+```
+
+**Why This Matters**:
+- ✅ **CPU-Intensive Tasks**: Process pool bypasses the GIL for true parallel execution
+- ✅ **Legacy Code**: Thread pool allows using sync functions (def) instead of requiring async def
+- ✅ **Blocking Libraries**: Thread pool handles blocking I/O without blocking the event loop
+- ✅ **Celery Compatibility**: Similar to Celery's `--pool` parameter (prefork, threads, solo)
+
+**Implementation Details**:
+- Automatic executor creation (ThreadPoolExecutor / ProcessPoolExecutor)
+- Seamless integration with existing retry logic and ACK/NACK
+- Proper resource cleanup (executor shutdown on worker stop)
+- Full backward compatibility (async pool is default)
+
+**Examples**:
+- New example: `examples_new/pool_types_example.py`
+- Demonstrates all three pool types
+- Shows appropriate use cases for each
+
+### Changed
+
+- `AsyncTaskDelayBase.__init__()`: Added `pool` parameter
+- `AioTasks.__init__()`: Added `pool` parameter
+- `build_manager()`: Added `pool` parameter
+- All backend classes: Added `pool` parameter support
+- Worker CLI: Added `-P/--pool` parameter
+- Worker model: Added `pool` field with validation
+
+### Technical Notes
+
+- Pool type validation: Only accepts "async", "thread", or "process"
+- Thread pool: Uses `asyncio.run_in_executor()` with ThreadPoolExecutor
+- Process pool: Uses `asyncio.run_in_executor()` with ProcessPoolExecutor
+- Async pool: Direct coroutine execution with `asyncio.create_task()` (existing behavior)
+- Function validation:
+  - async pool: Requires `async def` functions
+  - thread/process pools: Accepts both `def` and `async def` (with warning for async def)
+
 ## [2.2.0] - 2024-11-22
 
 ### ⚠️  BREAKING CHANGES
