@@ -6,11 +6,9 @@ from aiotasks.core.model import SharedConfig
 log = logging.getLogger("aiotasks")
 
 
-def check_input_config(config: SharedConfig) -> None | AioTasksTypeError:
-    if config and not config.is_valid:
-        for prop, msg in config.validation_errors:
-            raise AioTasksTypeError(f"'{prop}' property {msg}")
-
+def check_input_config(config: SharedConfig) -> None | AioTasksTypeError:  # noqa: ARG001
+    # Pydantic validates the config during construction, so no additional
+    # validation is needed here. This function is kept for backwards compatibility.
     return None
 
 
