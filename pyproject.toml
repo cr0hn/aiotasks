@@ -32,17 +32,16 @@ classifiers = [
 
 dependencies = [
     "click>=8.1.7",
-    "redis[hiredis]>=5.0.0",
     "colorlog>=6.8.0",
     "pydantic>=2.5.0",
     "msgpack>=1.0.7",
     "tenacity>=8.2.3",
+    "uvloop>=0.19.0",  # Performance improvement by default
 ]
 
 [project.optional-dependencies]
-performance = [
-    "uvloop>=0.19.0",
-    "ujson>=5.9.0",
+redis = [
+    "redis[hiredis]>=5.0.0",
 ]
 amqp = [
     "aio-pika>=9.4.0",
@@ -54,8 +53,11 @@ fastapi = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
 ]
+performance = [
+    "ujson>=5.9.0",
+]
 all = [
-    "aiotasks[performance,amqp,zeromq,fastapi]",
+    "aiotasks[redis,amqp,zeromq,fastapi,performance]",
 ]
 dev = [
     "pytest>=7.4.0",

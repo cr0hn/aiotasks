@@ -70,19 +70,36 @@ AioTasks is a **modern, high-performance task queue** built on Python's asyncio.
 
 ## 📦 Installation
 
+### Choose Your Broker
+
 ```bash
-# Basic installation
+# Basic installation (includes uvloop for performance)
 pip install aiotasks
 
-# With Redis support (recommended for production)
-pip install aiotasks[redis]
+# By broker - install only what you need
+pip install aiotasks[redis]      # Redis backend (recommended for production)
+pip install aiotasks[amqp]       # RabbitMQ/AMQP backend
+pip install aiotasks[zeromq]     # ZeroMQ backend
 
-# With RabbitMQ/AMQP support
-pip install aiotasks[amqp]
+# With FastAPI integration
+pip install aiotasks[fastapi]
 
-# All backends + performance optimizations
+# All backends + optimizations (Redis, AMQP, ZeroMQ, FastAPI, ujson)
 pip install aiotasks[all]
 ```
+
+### What's Included?
+
+| Installation | Memory Backend | uvloop | Redis | RabbitMQ | ZeroMQ | FastAPI | ujson |
+|-------------|:--------------:|:------:|:-----:|:--------:|:------:|:-------:|:-----:|
+| `pip install aiotasks` | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `aiotasks[redis]` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `aiotasks[amqp]` | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| `aiotasks[zeromq]` | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `aiotasks[fastapi]` | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| `aiotasks[all]` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+**Note:** All installations include the **uvloop** event loop for improved performance by default.
 
 ---
 
@@ -159,26 +176,64 @@ async def send_notification(
 
 ### Integration with FastAPI
 
+**Ultra-simple integration** - Just 3 steps!
+
 ```python
 from fastapi import FastAPI
 from aiotasks import AioTasks
+import asyncio
 
+# Step 1: Create FastAPI app and AioTasks instance
 api = FastAPI()
-app = AioTasks("api_tasks", broker="redis://localhost")
+tasks = AioTasks("api_tasks", broker="redis://localhost")
 
-@app.task()
-async def send_welcome_email(email: str):
-    await asyncio.sleep(1)
-    return {"status": "sent"}
+# Step 2: Define background tasks
+@tasks.task()
+async def send_welcome_email(email: str, name: str):
+    """This runs in the background, outside the request/response cycle."""
+    await asyncio.sleep(2)  # Simulate email sending
+    print(f"📧 Welcome email sent to {name} ({email})")
+    return {"status": "sent", "email": email}
 
-@api.post("/register")
-async def register_user(email: str):
-    await send_welcome_email.delay(email)
-    return {"status": "registered"}
+@tasks.task()
+async def process_order(order_id: int, user_id: int):
+    """Heavy processing that doesn't block the API response."""
+    await asyncio.sleep(5)  # Simulate order processing
+    print(f"✅ Order {order_id} processed for user {user_id}")
+    return {"order_id": order_id, "status": "completed"}
 
+# Step 3: Start task worker on app startup
 @api.on_event("startup")
 async def startup():
-    app.run()
+    tasks.run()  # Start processing background tasks
+
+@api.on_event("shutdown")
+async def shutdown():
+    tasks.stop()  # Graceful shutdown
+
+# Your API endpoints - they respond instantly!
+@api.post("/register")
+async def register_user(email: str, name: str):
+    # Queue the task and return immediately
+    await send_welcome_email.delay(email, name)
+    return {"status": "registered", "message": "Welcome email will be sent"}
+
+@api.post("/orders")
+async def create_order(order_id: int, user_id: int):
+    # Heavy processing happens in background
+    await process_order.delay(order_id, user_id)
+    return {"order_id": order_id, "status": "processing"}
+```
+
+**Why this works:**
+- ✅ **No blocking** - API responds instantly while tasks run in background
+- ✅ **Simple** - Just `.delay()` to queue tasks
+- ✅ **Scalable** - Run multiple workers with `aiotasks -A myapp worker -c 20`
+- ✅ **Production ready** - Use Redis broker for distributed processing
+
+**Install with FastAPI support:**
+```bash
+pip install aiotasks[fastapi,redis]
 ```
 
 ---
