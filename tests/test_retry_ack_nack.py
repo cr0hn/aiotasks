@@ -18,7 +18,7 @@ async def test_task_retry_success_after_failure():
     attempt_count = 0
     final_status = None
 
-    @app.task
+    @app.task()
     async def flaky_task():
         nonlocal attempt_count, final_status
         attempt_count += 1
@@ -42,7 +42,7 @@ async def test_task_retry_max_attempts():
 
     attempt_count = 0
 
-    @app.task
+    @app.task()
     async def always_fails():
         nonlocal attempt_count
         attempt_count += 1
@@ -63,7 +63,7 @@ async def test_task_no_retry_on_success():
 
     attempt_count = 0
 
-    @app.task
+    @app.task()
     async def success_task():
         nonlocal attempt_count
         attempt_count += 1
@@ -83,17 +83,17 @@ async def test_multiple_tasks_with_retries():
 
     counts = {"success": 0, "flaky": 0, "fail": 0}
 
-    @app.task
+    @app.task()
     async def success_task():
         counts["success"] += 1
 
-    @app.task
+    @app.task()
     async def flaky_task():
         counts["flaky"] += 1
         if counts["flaky"] < 2:
             raise ValueError("Flaky failure")
 
-    @app.task
+    @app.task()
     async def fail_task():
         counts["fail"] += 1
         raise RuntimeError("Always fails")
@@ -161,19 +161,19 @@ async def test_retry_with_different_exceptions():
 
     attempts = {"value": 0, "runtime": 0, "type": 0}
 
-    @app.task
+    @app.task()
     async def value_error_task():
         attempts["value"] += 1
         if attempts["value"] < 2:
             raise ValueError("Value error")
 
-    @app.task
+    @app.task()
     async def runtime_error_task():
         attempts["runtime"] += 1
         if attempts["runtime"] < 2:
             raise RuntimeError("Runtime error")
 
-    @app.task
+    @app.task()
     async def type_error_task():
         attempts["type"] += 1
         if attempts["type"] < 2:
@@ -198,7 +198,7 @@ async def test_concurrent_tasks_with_retries():
 
     results = []
 
-    @app.task
+    @app.task()
     async def concurrent_task(task_id: int):
         nonlocal results
         await asyncio.sleep(0.1)
@@ -224,7 +224,7 @@ async def test_retry_exponential_backoff():
 
     timestamps = []
 
-    @app.task
+    @app.task()
     async def backoff_task():
         nonlocal timestamps
         timestamps.append(time.time())
