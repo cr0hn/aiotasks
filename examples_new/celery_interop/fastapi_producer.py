@@ -22,6 +22,7 @@ Usage:
 """
 
 from fastapi import FastAPI
+
 from aiotasks import AioTasks
 
 # Create AioTasks app with Celery compatibility enabled

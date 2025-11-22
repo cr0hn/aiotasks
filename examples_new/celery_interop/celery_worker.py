@@ -52,7 +52,7 @@ def send_email(to: str, subject: str = "Hello from AioTasks") -> dict:
     This is a Celery worker processing a task sent by AioTasks!
     Thanks to celery_compat=True, the message format is compatible.
     """
-    print(f"📧 [Celery Worker] Processing send_email task")
+    print("📧 [Celery Worker] Processing send_email task")
     print(f"   To: {to}")
     print(f"   Subject: {subject}")
 
@@ -66,14 +66,14 @@ def send_email(to: str, subject: str = "Hello from AioTasks") -> dict:
         "processed_by": "Celery Worker",
     }
 
-    print(f"   ✅ Email sent successfully")
+    print("   ✅ Email sent successfully")
     return result
 
 
 @app.task(name="process_data")
 def process_data(data: dict) -> dict:
     """Process data task."""
-    print(f"📊 [Celery Worker] Processing data task")
+    print("📊 [Celery Worker] Processing data task")
     print(f"   Data: {data}")
 
     # Simulate data processing
@@ -86,14 +86,14 @@ def process_data(data: dict) -> dict:
         "processing_time": 2.0,
     }
 
-    print(f"   ✅ Data processed successfully")
+    print("   ✅ Data processed successfully")
     return result
 
 
 @app.task(name="generate_report")
 def generate_report(report_id: int) -> dict:
     """Generate report task."""
-    print(f"📄 [Celery Worker] Generating report")
+    print("📄 [Celery Worker] Generating report")
     print(f"   Report ID: {report_id}")
 
     # Simulate report generation
@@ -106,7 +106,7 @@ def generate_report(report_id: int) -> dict:
         "file_path": f"/reports/report_{report_id}.pdf",
     }
 
-    print(f"   ✅ Report generated successfully")
+    print("   ✅ Report generated successfully")
     return result
 
 

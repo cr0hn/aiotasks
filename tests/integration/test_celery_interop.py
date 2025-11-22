@@ -18,7 +18,7 @@ from aiotasks import AioTasks
 from aiotasks.celery_compat import decode_celery_task, is_celery_message
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class TestCeleryInteroperability:
     """Test interoperability between AioTasks and Celery."""
 
@@ -156,7 +156,7 @@ class TestCeleryInteroperability:
         assert aiotasks_decoded["args"] == [100]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class TestCeleryCompatibilityFeatures:
     """Test specific Celery compatibility features."""
 

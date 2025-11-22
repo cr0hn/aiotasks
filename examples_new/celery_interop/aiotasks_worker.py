@@ -42,7 +42,7 @@ async def send_email(to: str, subject: str = "Hello from AioTasks") -> dict:
     This async version can handle many concurrent emails efficiently
     without blocking the worker.
     """
-    print(f"📧 [AioTasks Worker] Processing send_email task")
+    print("📧 [AioTasks Worker] Processing send_email task")
     print(f"   To: {to}")
     print(f"   Subject: {subject}")
 
@@ -56,14 +56,14 @@ async def send_email(to: str, subject: str = "Hello from AioTasks") -> dict:
         "processed_by": "AioTasks Worker (async)",
     }
 
-    print(f"   ✅ Email sent successfully (async)")
+    print("   ✅ Email sent successfully (async)")
     return result
 
 
 @tasks.task()
 async def process_data(data: dict) -> dict:
     """Process data task asynchronously."""
-    print(f"📊 [AioTasks Worker] Processing data task")
+    print("📊 [AioTasks Worker] Processing data task")
     print(f"   Data: {data}")
 
     # Simulate async data processing
@@ -76,14 +76,14 @@ async def process_data(data: dict) -> dict:
         "processing_time": 2.0,
     }
 
-    print(f"   ✅ Data processed successfully (async)")
+    print("   ✅ Data processed successfully (async)")
     return result
 
 
 @tasks.task()
 async def generate_report(report_id: int) -> dict:
     """Generate report asynchronously."""
-    print(f"📄 [AioTasks Worker] Generating report")
+    print("📄 [AioTasks Worker] Generating report")
     print(f"   Report ID: {report_id}")
 
     # Simulate async report generation
@@ -96,7 +96,7 @@ async def generate_report(report_id: int) -> dict:
         "file_path": f"/reports/report_{report_id}.pdf",
     }
 
-    print(f"   ✅ Report generated successfully (async)")
+    print("   ✅ Report generated successfully (async)")
     return result
 
 

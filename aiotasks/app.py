@@ -106,7 +106,9 @@ class AioTasks:
         )
 
         compat_msg = " (Celery-compatible)" if celery_compat else ""
-        log.info(f"AioTasks app '{name}' initialized with broker: {broker}, pool: {pool}{compat_msg}")
+        log.info(
+            f"AioTasks app '{name}' initialized with broker: {broker}, pool: {pool}{compat_msg}"
+        )
 
     def task(self, name: str | None = None, **options: Any) -> Callable:
         """Decorator to register async functions as tasks (Celery-style).

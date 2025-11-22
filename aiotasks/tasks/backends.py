@@ -365,7 +365,9 @@ def build_manager(
             celery_compat=celery_compat,
         )
     elif dsn.startswith("redis"):
-        log.debug(f"Creating Redis backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}")
+        log.debug(
+            f"Creating Redis backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}"
+        )
         manager = RedisBackend(
             dsn=dsn,
             prefix=prefix,
@@ -376,7 +378,9 @@ def build_manager(
             celery_compat=celery_compat,
         )
     elif dsn.startswith("amqp"):
-        log.debug(f"Creating AMQP backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}")
+        log.debug(
+            f"Creating AMQP backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}"
+        )
         manager = AMQPBackend(
             dsn=dsn,
             prefix=prefix,
@@ -387,7 +391,9 @@ def build_manager(
             celery_compat=celery_compat,
         )
     elif dsn.startswith("zmq"):
-        log.debug(f"Creating ZMQ backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}")
+        log.debug(
+            f"Creating ZMQ backend with DSN: {dsn}, pool={pool}, celery_compat={celery_compat}"
+        )
         manager = ZMQBackend(
             dsn=dsn,
             prefix=prefix,
