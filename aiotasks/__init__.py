@@ -6,6 +6,29 @@ Provides both Celery-style API and classic API for distributed task processing.
 # Celery-style API (recommended)
 from .app import AioTasks
 
+# Result backend
+from .result_backend import (
+    MemoryResultBackend,
+    RedisResultBackend,
+    ResultBackend,
+    TaskResult,
+    build_result_backend,
+)
+
+# Periodic tasks (Celery Beat compatible)
+from .periodic import (
+    CrontabSchedule,
+    IntervalSchedule,
+    PeriodicScheduler,
+    PeriodicTask,
+    Schedule,
+    crontab,
+    every,
+)
+
+# Dead Letter Queue
+from .dlq import DeadLetterQueue, FailedTask, RedisDLQ
+
 # Classic API (still supported)
 from .tasks import build_manager
 

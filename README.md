@@ -10,18 +10,11 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/aiotasks.svg)](https://pypi.org/project/aiotasks/)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](https://github.com/cr0hn/aiotasks/blob/main/LICENSE)
 [![CI/CD](https://github.com/cr0hn/aiotasks/workflows/CI%2FCD/badge.svg)](https://github.com/cr0hn/aiotasks/actions)
-[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://aiotasks.readthedocs.io)
-
-[Features](#-features) •
-[Installation](#-installation) •
-[Quick Start](#-quick-start) •
-[CLI Reference](#-cli-reference) •
-[Migration Guide](#-migration-from-10x) •
-[Documentation](https://aiotasks.readthedocs.io)
 
 </div>
 
 ---
+
 
 ## 📋 Table of Contents
 
@@ -29,15 +22,22 @@
 - [Features](#-features)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
-- [Examples](#-examples)
-- [CLI Reference](#-cli-reference)
+- [Core Concepts](#-core-concepts)
+- [Result Backend](#-result-backend)
+- [Periodic Tasks](#-periodic-tasks)
+- [Dead Letter Queue](#-dead-letter-queue)
+- [Celery Interoperability](#-celery-interoperability)
+- [Pool Support](#-pool-support)
 - [Backends](#-backends)
-- [Migration from 1.0.x](#-migration-from-10x)
-- [What's New in 2.0](#-whats-new-in-20)
-- [Why AioTasks?](#-why-aiotasks)
+- [CLI Reference](#-cli-reference)
+- [Examples](#-examples)
+- [Migration Guide](#-migration-guide)
+- [FAQ](#-faq)
+- [Contributing](#-contributing)
 - [License](#-license)
 
 ---
+
 
 ## 🎯 What is AioTasks?
 
@@ -49,13 +49,16 @@ AioTasks is a **modern, high-performance task queue** built on Python's asyncio.
 - 🔄 Periodic tasks and scheduling
 - 📊 Data pipelines and ETL jobs
 - 🤖 Microservices communication
+- 🔗 Celery integration and gradual migration
 
 ---
 
+
 ## ✨ Features
 
-- **🔗 Celery Interoperability** - Full Celery Protocol v2 support! Send tasks from AioTasks, process with Celery workers (or vice versa)
-- **🎭 Celery-Compatible CLI** - Same syntax, just `aiotasks` instead of `celery`
+### Core Features
+
+- **🎭 Celery-Compatible API** - Same syntax, just `aiotasks` instead of `celery`
 - **⚡ Native AsyncIO** - Built from scratch for async/await
 - **🔄 Multiple Backends** - Memory, Redis, RabbitMQ (AMQP), ZeroMQ
 - **🏊 Pool Support** - async (coroutines), thread, or process pools (Celery-like `--pool`)
@@ -64,9 +67,99 @@ AioTasks is a **modern, high-performance task queue** built on Python's asyncio.
 - **⏱️ TTL Support** - Automatic task expiration
 - **🎯 Type Safe** - Complete type hints with modern Python
 - **🐍 Python 3.12+** - Pattern matching, StrEnum, PEP 604, type aliases
-- **📝 Comprehensive Testing** - pytest suite with 40%+ coverage
-- **🔄 CI/CD Ready** - GitHub Actions workflows included
-- **📚 Multi-Language Docs** - English & Spanish
+
+### 🔗 Celery Interoperability **NEW in v2.3**
+
+**Full Celery Protocol v2 compatibility** enables seamless interoperability:
+
+- Send tasks from AioTasks, process with Celery workers
+- Send tasks from Celery, process with AioTasks workers
+- Mixed worker pools (some Celery, some AioTasks)
+- Gradual migration from Celery to AioTasks
+- FastAPI + existing Celery infrastructure
+
+```python
+# Enable with one parameter
+app = AioTasks(
+    'myapp',
+    broker='redis://localhost:6379/0',
+    celery_compat=True,  # ✨ That's it!
+)
+```
+
+### 📦 Result Backend **NEW in v2.3**
+
+**Store and retrieve task results** with multiple backends:
+
+- Get task results by ID
+- Wait for task completion with timeout
+- Memory and Redis backends
+- Automatic result expiration (TTL)
+
+```python
+# Configure result backend
+app = AioTasks(
+    broker='redis://localhost:6379/0',
+    backend='redis://localhost:6379/1',  # Results stored here
+)
+
+# Get results
+result = await app.wait_for_result(task_id, timeout=60)
+print(result.result)  # Task return value
+```
+
+### ⏰ Periodic Tasks **NEW in v2.3**
+
+**Celery Beat compatible scheduler** for periodic tasks:
+
+- Interval schedules (every N seconds/minutes/hours)
+- Cron-style schedules
+- Start/stop scheduler independently
+- Persistent schedule configuration
+
+```python
+from aiotasks import every, crontab
+
+# Every hour
+app.add_periodic_task(
+    name="cleanup",
+    schedule=every(hours=1),
+    task="cleanup_old_data",
+)
+
+# Daily at 7:30 AM
+app.add_periodic_task(
+    name="daily_report",
+    schedule=crontab(hour="7", minute="30"),
+    task="generate_report",
+)
+
+await app.start_scheduler()
+```
+
+### 💀 Dead Letter Queue **NEW in v2.3**
+
+**Handle failed tasks gracefully**:
+
+- Automatic DLQ for tasks that exhaust retries
+- Inspect failed tasks with full error details
+- Retry failed tasks manually or in batch
+- DLQ statistics and monitoring
+
+```python
+# List failed tasks
+failed = await app.list_failed_tasks(limit=10)
+
+# Retry specific failed task
+await app.retry_failed_task(task_id)
+
+# Retry all failed email tasks
+count = await app.retry_failed_tasks(task_name="send_email")
+
+# Get statistics
+stats = app.get_dlq_stats()
+print(f"Total failed: {stats['total_tasks']}")
+```
 
 ---
 
@@ -130,383 +223,485 @@ asyncio.run(main())
 
 ---
 
-## 💡 Examples
 
-### Modern Python Features
+## 📦 Result Backend
 
-```python
-from enum import StrEnum, auto
+### Overview
 
-class Priority(StrEnum):
-    URGENT = auto()
-    HIGH = auto()
-    NORMAL = auto()
+The Result Backend allows you to store and retrieve task results. This is essential for APIs that need to wait for task completion or check task status.
 
-@app.task()
-async def send_notification(
-    user_id: int,
-    message: str,
-    priority: Priority = Priority.NORMAL,
-) -> dict[str, str | int]:
-    # Python 3.10+ pattern matching
-    match priority:
-        case Priority.URGENT:
-            delay = 0
-        case Priority.HIGH:
-            delay = 0.1
-        case _:
-            delay = 0.5
-
-    await asyncio.sleep(delay)
-    return {"user_id": user_id, "status": "sent"}
-```
-
-### Pool Support - Choose Your Execution Strategy
-
-**New in v2.3**: AioTasks supports three execution pool types (like Celery's `--pool`):
+### Configuration
 
 ```python
-# Async pool (default) - for I/O-bound async tasks
-app = AioTasks('myapp', broker='redis://localhost', pool='async')
+from aiotasks import AioTasks
 
-@app.task()
-async def fetch_data(url: str):
-    await asyncio.sleep(1)  # Non-blocking I/O
-    return data
-
-# Thread pool - for blocking I/O and sync libraries
-app = AioTasks('myapp', broker='redis://localhost', pool='thread', concurrency=20)
-
-@app.task()
-def blocking_io(file_path: str):
-    import time
-    time.sleep(1)  # Blocking call OK in thread pool
-    return result
-
-# Process pool - for CPU-intensive tasks
-app = AioTasks('myapp', broker='redis://localhost', pool='process', concurrency=4)
-
-@app.task()
-def cpu_intensive(n: int):
-    # True parallel execution (bypasses GIL)
-    return sum(i*i for i in range(n))
-```
-
-**CLI:**
-```bash
-# Run worker with specific pool type
-aiotasks -A app worker --pool=async -c 10    # Default (coroutines)
-aiotasks -A app worker --pool=thread -c 20   # Thread pool
-aiotasks -A app worker --pool=process -c 4   # Process pool
-```
-
-**When to use each:**
-- **async**: I/O-bound async tasks (DB queries, API calls, file I/O)
-- **thread**: Blocking I/O, legacy sync code, sync libraries
-- **process**: CPU-intensive tasks, bypasses GIL for true parallelism
-
-### 🔗 Celery Interoperability
-
-**NEW in v2.3**: Full Celery Protocol v2 compatibility! AioTasks can now interoperate with Celery workers:
-
-```python
-# Enable Celery compatibility mode
+# Memory backend (development)
 app = AioTasks(
-    'myapp',
+    broker='memory://',
+    backend='memory://',  # Results in memory
+)
+
+# Redis backend (production)
+app = AioTasks(
     broker='redis://localhost:6379/0',
-    celery_compat=True,  # ✨ Enable Celery Protocol v2 format
+    backend='redis://localhost:6379/1',  # Results in Redis
+    task_ttl=3600,  # Results expire after 1 hour
+)
+```
+
+### Usage
+
+```python
+# Define task
+@app.task()
+async def calculate(x: int, y: int) -> int:
+    await asyncio.sleep(2)
+    return x + y
+
+# Queue task and get task ID
+task_ctx = calculate.delay(4, 5)
+task_id = task_ctx.task_id
+
+# Option 1: Poll for result
+result = await app.get_result(task_id)
+if result and result.status == "success":
+    print(result.result)  # 9
+
+# Option 2: Wait for result (with timeout)
+try:
+    result = await app.wait_for_result(task_id, timeout=30)
+    print(result.result)  # 9
+except TimeoutError:
+    print("Task didn't complete in time")
+except RuntimeError as e:
+    print(f"Task failed: {e}")
+```
+
+### Result Object
+
+```python
+class TaskResult:
+    task_id: str          # Task identifier
+    status: str           # pending, started, success, failure
+    result: Any           # Return value (if successful)
+    error: str            # Error message (if failed)
+    traceback: str        # Full traceback (if failed)
+    started_at: datetime  # When task started
+    completed_at: datetime  # When task completed
+```
+
+### FastAPI Integration
+
+```python
+from fastapi import FastAPI, BackgroundTasks
+from aiotasks import AioTasks
+
+app_api = FastAPI()
+tasks = AioTasks(broker='redis://...', backend='redis://...')
+
+@app_api.post("/process")
+async def process_data(data: dict):
+    # Queue task
+    task_ctx = process_job.delay(data)
+
+    return {"task_id": task_ctx.task_id, "status": "processing"}
+
+@app_api.get("/status/{task_id}")
+async def get_status(task_id: str):
+    result = await tasks.get_result(task_id)
+
+    if result is None:
+        return {"status": "not_found"}
+
+    return {
+        "status": result.status,
+        "result": result.result if result.status == "success" else None,
+        "error": result.error if result.status == "failure" else None,
+    }
+```
+
+---
+
+## ⏰ Periodic Tasks
+
+### Overview
+
+Periodic tasks allow you to schedule tasks to run automatically at specific intervals or times, similar to Celery Beat.
+
+### Creating Schedules
+
+```python
+from aiotasks import AioTasks, every, crontab
+
+app = AioTasks(broker='redis://localhost:6379/0')
+
+# Define your tasks
+@app.task()
+async def cleanup_old_data():
+    # Cleanup logic
+    pass
+
+@app.task()
+async def send_daily_report():
+    # Report logic
+    pass
+
+@app.task()
+async def health_check():
+    # Health check logic
+    pass
+```
+
+### Interval Schedules
+
+Run tasks at fixed intervals:
+
+```python
+# Every 30 seconds
+app.add_periodic_task(
+    name="health_check",
+    schedule=every(seconds=30),
+    task="health_check",
+)
+
+# Every 5 minutes
+app.add_periodic_task(
+    name="quick_cleanup",
+    schedule=every(minutes=5),
+    task="cleanup_old_data",
+)
+
+# Every 2 hours
+app.add_periodic_task(
+    name="hourly_sync",
+    schedule=every(hours=2),
+    task="sync_data",
+)
+
+# Every day
+app.add_periodic_task(
+    name="daily_backup",
+    schedule=every(days=1),
+    task="backup_database",
+)
+```
+
+### Cron Schedules
+
+Use cron-style expressions for more complex schedules:
+
+```python
+# Every 15 minutes
+app.add_periodic_task(
+    name="frequent_check",
+    schedule=crontab(minute="*/15"),
+    task="check_status",
+)
+
+# Daily at 7:30 AM
+app.add_periodic_task(
+    name="morning_report",
+    schedule=crontab(hour="7", minute="30"),
+    task="send_daily_report",
+)
+
+# Every Monday at 9 AM
+app.add_periodic_task(
+    name="weekly_cleanup",
+    schedule=crontab(hour="9", minute="0", day_of_week="1"),
+    task="weekly_maintenance",
+)
+
+# First day of month at midnight
+app.add_periodic_task(
+    name="monthly_billing",
+    schedule=crontab(hour="0", minute="0", day_of_month="1"),
+    task="process_billing",
+)
+
+# Every 2 hours at :30 (2:30, 4:30, 6:30, etc.)
+app.add_periodic_task(
+    name="bi_hourly",
+    schedule=crontab(hour="*/2", minute="30"),
+    task="sync_external_data",
+)
+```
+
+### Starting the Scheduler
+
+```python
+# Start worker and scheduler together
+async def main():
+    # Start task worker
+    app.run()
+
+    # Start periodic scheduler
+    await app.start_scheduler()
+
+    # Wait for tasks
+    await app.wait()
+
+# Or start scheduler separately
+await app.start_scheduler()
+
+# Stop scheduler
+await app.stop_scheduler()
+```
+
+### Managing Periodic Tasks
+
+```python
+# List all periodic tasks
+tasks = app.list_periodic_tasks()
+for task in tasks:
+    print(f"{task.name}: {task.total_runs} runs")
+
+# Get specific task
+task = app.get_periodic_task("daily_report")
+print(f"Last run: {task.last_run}")
+
+# Remove periodic task
+app.remove_periodic_task("old_task")
+
+# Disable temporarily
+task = app.get_periodic_task("cleanup")
+task.enabled = False
+```
+
+### Dynamic Schedules
+
+```python
+# Add task with parameters
+app.add_periodic_task(
+    name="parameterized_task",
+    schedule=every(hours=1),
+    task="process_category",
+    kwargs={"category": "emails", "limit": 100},
+)
+
+# Add task programmatically
+def setup_monitoring(app, services):
+    for service in services:
+        app.add_periodic_task(
+            name=f"monitor_{service}",
+            schedule=every(minutes=5),
+            task="monitor_service",
+            kwargs={"service": service},
+        )
+```
+
+---
+
+## 💀 Dead Letter Queue (DLQ)
+
+### Overview
+
+The Dead Letter Queue automatically captures tasks that fail after exhausting all retry attempts, allowing you to:
+
+- Inspect failed tasks with full error details
+- Retry failed tasks manually or in batch
+- Debug production issues
+- Monitor failure patterns
+
+### How It Works
+
+When a task fails all retry attempts (default 3), it's automatically moved to the DLQ:
+
+```python
+from aiotasks import AioTasks
+
+app = AioTasks(
+    broker='redis://localhost:6379/0',
+    max_retries=3,  # After 3 retries, task goes to DLQ
 )
 
 @app.task()
-async def send_email(to: str, subject: str):
-    """This task can be processed by BOTH AioTasks and Celery workers!"""
+async def risky_operation(data: dict):
+    # This might fail
+    result = await external_api.call(data)
+    return result
+```
+
+### Inspecting Failed Tasks
+
+```python
+# List all failed tasks
+failed_tasks = await app.list_failed_tasks(limit=10)
+
+for task in failed_tasks:
+    print(f"Task: {task.task_name}")
+    print(f"Error: {task.error}")
+    print(f"Retries: {task.retry_count}")
+    print(f"Failed at: {task.failed_at}")
+    print(f"Traceback: {task.traceback}")
+
+# Get specific failed task
+failed = await app.get_failed_task(task_id)
+if failed:
+    print(f"Args: {failed.args}")
+    print(f"Kwargs: {failed.kwargs}")
+
+# Filter by task name
+failed_emails = await app.list_failed_tasks(
+    task_name="send_email",
+    limit=20,
+)
+```
+
+### Retrying Failed Tasks
+
+```python
+# Retry single task
+success = await app.retry_failed_task(task_id)
+if success:
+    print("Task queued for retry")
+
+# Retry all failed tasks of specific type
+count = await app.retry_failed_tasks(task_name="send_email")
+print(f"Retried {count} email tasks")
+
+# Retry all failed tasks (up to limit)
+count = await app.retry_failed_tasks(limit=50)
+print(f"Retried {count} tasks")
+```
+
+### Clearing the DLQ
+
+```python
+# Clear all failed tasks
+count = await app.clear_failed_tasks()
+print(f"Cleared {count} failed tasks")
+
+# Clear only specific task type
+count = await app.clear_failed_tasks(task_name="send_email")
+print(f"Cleared {count} failed email tasks")
+```
+
+### DLQ Statistics
+
+```python
+stats = app.get_dlq_stats()
+
+print(f"Total failed tasks: {stats['total_tasks']}")
+print(f"Max DLQ size: {stats['max_size']}")
+print(f"Oldest failure: {stats['oldest_failure']}")
+print(f"Newest failure: {stats['newest_failure']}")
+
+# Failures by task type
+for task_name, count in stats['by_task_name'].items():
+    print(f"{task_name}: {count} failures")
+```
+
+### Monitoring Failed Tasks
+
+```python
+# Periodic check for failed tasks
+@app.task()
+async def monitor_dlq():
+    stats = app.get_dlq_stats()
+
+    if stats['total_tasks'] > 100:
+        # Send alert
+        await send_alert(f"DLQ has {stats['total_tasks']} failed tasks!")
+
+    # Log failure patterns
+    for task_name, count in stats['by_task_name'].items():
+        if count > 10:
+            logging.warning(f"Task {task_name} has {count} failures")
+
+# Schedule monitoring
+app.add_periodic_task(
+    name="dlq_monitor",
+    schedule=every(minutes=5),
+    task="monitor_dlq",
+)
+```
+
+### Production Best Practices
+
+```python
+# 1. Set appropriate retry limits
+app = AioTasks(
+    broker='redis://...',
+    max_retries=5,  # More retries before DLQ
+)
+
+# 2. Monitor DLQ size
+async def check_dlq_health():
+    stats = app.get_dlq_stats()
+    if stats['total_tasks'] > 1000:
+        # DLQ getting full - investigate
+        await alert_ops_team(stats)
+
+# 3. Automatic retry of transient failures
+async def auto_retry_transient():
+    # Retry tasks that might have failed due to temporary issues
+    failed = await app.list_failed_tasks(task_name="api_call")
+
+    for task in failed:
+        if "connection" in task.error.lower():
+            # Likely transient - retry
+            await app.retry_failed_task(task.task_id)
+
+# 4. Archive old failures
+async def archive_old_failures():
+    failed = await app.list_failed_tasks()
+
+    for task in failed:
+        age = (datetime.utcnow() - task.failed_at).days
+        if age > 30:
+            # Archive to database
+            await db.archive_failed_task(task)
+            # Remove from DLQ
+            await app.dlq.remove_task(task.task_id)
+```
+
+---
+
+
+## 🔗 Celery Interoperability
+## Quick Start
+
+### Enable Celery Compatibility
+
+```python
+from aiotasks import AioTasks
+
+# Create AioTasks app with Celery compatibility
+app = AioTasks(
+    name="myapp",
+    broker="redis://localhost:6379/0",
+    celery_compat=True,  # ✨ Enable Celery interoperability
+)
+
+# Define tasks normally
+@app.task()
+async def send_email(to: str, subject: str) -> dict:
+    # Your async code here
     return {"status": "sent", "to": to}
 
-# Queue the task - sends in Celery format
+# Queue tasks normally
 await send_email.delay("user@example.com", "Hello")
 ```
 
-**Why use this?**
-
-- 🚀 **FastAPI + Celery workers**: Use AioTasks in your modern async API, keep existing Celery workers
-- 🔄 **Gradual migration**: Migrate from Celery to AioTasks incrementally with zero downtime
-- 🏗️ **Mixed deployments**: Run both Celery and AioTasks workers processing the same queue
-- 🎯 **Best tool for each job**: Use Celery for CPU tasks, AioTasks for async I/O
-
-**Example: FastAPI with Celery workers**
+### Process with Celery Worker
 
 ```python
-# FastAPI app using AioTasks (new code)
-from fastapi import FastAPI
-from aiotasks import AioTasks
+# celery_worker.py
+from celery import Celery
 
-tasks = AioTasks('myapp', broker='redis://localhost', celery_compat=True)
+app = Celery("myapp", broker="redis://localhost:6379/0")
 
-@app.post("/process")
-async def api_endpoint(data: dict):
-    await process_data.delay(data)  # Sent in Celery format
-    return {"status": "processing"}
-
-# Existing Celery worker - NO CHANGES NEEDED!
-# celery -A worker worker --loglevel=info
+@app.task(name="send_email")
+def send_email(to: str, subject: str) -> dict:
+    # Celery worker processes the task!
+    return {"status": "sent", "to": to}
 ```
-
-📚 **[Full Celery Interoperability Guide →](docs/celery_interoperability.md)**
-
-### Integration with FastAPI
-
-**Recommended approach** - API sends tasks, workers run separately:
-
-```python
-from fastapi import FastAPI
-from aiotasks import AioTasks
-
-# Step 1: Create FastAPI app and AioTasks instance
-api = FastAPI()
-tasks = AioTasks("api_tasks", broker="redis://localhost:6379/0")
-
-# Step 2: Define background tasks
-@tasks.task()
-async def send_welcome_email(email: str, name: str):
-    """This will be executed by separate workers."""
-    await asyncio.sleep(2)
-    print(f"📧 Welcome email sent to {name} ({email})")
-    return {"status": "sent", "email": email}
-
-@tasks.task()
-async def process_order(order_id: int, user_id: int):
-    """Heavy processing executed by workers."""
-    await asyncio.sleep(5)
-    print(f"✅ Order {order_id} processed for user {user_id}")
-    return {"order_id": order_id, "status": "completed"}
-
-# Step 3: API endpoints - they just queue tasks!
-@api.post("/register")
-async def register_user(email: str, name: str):
-    # Queue task - workers will process it
-    await send_welcome_email.delay(email, name)
-    return {"status": "registered", "message": "Email will be sent"}
-
-@api.post("/orders")
-async def create_order(order_id: int, user_id: int):
-    # Queue task - workers will process it
-    await process_order.delay(order_id, user_id)
-    return {"order_id": order_id, "status": "processing"}
-```
-
-**Run it:**
-```bash
-# Terminal 1: Start Redis
-docker run -d -p 6379:6379 redis:alpine
-
-# Terminal 2: Run FastAPI (API only, no workers)
-uvicorn app:api --reload
-
-# Terminal 3: Run workers separately (recommended for production)
-aiotasks -A app.tasks worker -l INFO -c 10
-```
-
-**Alternative: In-process worker (development only)**
-
-If you need workers in the same process, run them in a separate thread:
-
-```python
-import threading
-from fastapi import FastAPI
-from aiotasks import AioTasks
-
-api = FastAPI()
-tasks = AioTasks("api_tasks", broker="redis://localhost")
-
-@tasks.task()
-async def background_task(data: str):
-    # Process in background
-    pass
-
-@api.on_event("startup")
-async def startup():
-    # Run worker in a separate thread, NOT in the async context
-    def run_worker():
-        tasks.run()  # This blocks, so it must run in a thread
-
-    worker_thread = threading.Thread(target=run_worker, daemon=True)
-    worker_thread.start()
-
-@api.post("/process")
-async def process(data: str):
-    await background_task.delay(data)
-    return {"status": "queued"}
-```
-
-**Why separate workers?**
-- ✅ **Scalable** - Run multiple workers: `aiotasks worker -c 20`
-- ✅ **Reliable** - API and workers can restart independently
-- ✅ **Production-ready** - Standard architecture for async task queues
-- ✅ **Resource isolation** - Workers don't compete with API for resources
-
-**Install with FastAPI support:**
-```bash
-pip install aiotasks[fastapi,redis]
-```
-
----
-
-## 🖥️ CLI Reference
-
-**Celery-compatible CLI** - The syntax is nearly identical!
 
 ```bash
-# Start worker
-aiotasks -A myapp worker -l INFO -c 10
-
-# With specific queues
-aiotasks -A myapp worker -Q high,normal,low
-
-# Inspect tasks
-aiotasks inspect active
-aiotasks inspect stats
-
-# Control workers
-aiotasks control shutdown
-
-# Show status
-aiotasks status
+# Start the Celery worker
+celery -A celery_worker worker --loglevel=info
 ```
 
----
+**That's it!** AioTasks sends tasks in Celery format, and Celery workers process them.
 
-## 🔧 Backends
-
-| Backend | Use Case | Persistence | Performance |
-|---------|----------|-------------|-------------|
-| Memory | Development | ❌ | ⚡⚡⚡ |
-| Redis | Production | ✅ | ⚡⚡⚡ |
-| RabbitMQ | Enterprise | ✅ | ⚡⚡ |
-| ZeroMQ | High-perf | ❌ | ⚡⚡⚡ |
-
-```python
-# Memory (development)
-app = AioTasks("dev", broker="memory://")
-
-# Redis (production - recommended)
-app = AioTasks("prod", broker="redis://localhost:6379/0")
-
-# RabbitMQ (enterprise)
-app = AioTasks("enterprise", broker="amqp://guest:guest@localhost/")
-
-# ZeroMQ (high performance)
-app = AioTasks("fast", broker="zmq://localhost:5555")
-```
-
----
-
-## 🔄 Migration from 1.0.x
-
-### Before (v1.x)
-
-```python
-from aiotasks import build_manager
-
-manager = build_manager("redis://localhost")
-
-@manager.task()
-async def my_task():
-    pass
-```
-
-### After (v2.x - Recommended)
-
-```python
-from aiotasks import AioTasks
-
-app = AioTasks("myapp", broker="redis://localhost")
-
-@app.task()
-async def my_task():
-    pass
-```
-
-**Note:** Both APIs work! The classic API is still supported. ✅
-
----
-
-## 🆕 What's New in 2.0
-
-### Major Features
-- ✅ **Celery-Compatible CLI** - Same commands, familiar syntax
-- ✅ **Modern API** - `AioTasks` class mimics Celery
-- ✅ **Python 3.12+ Support** - Pattern matching, StrEnum, type aliases, modern type hints
-- ✅ **Retry Logic** - Automatic retries with exponential backoff
-- ✅ **ACK/NACK** - Reliable task processing
-- ✅ **TTL Support** - Task expiration
-- ✅ **Pydantic v2** - Modern data validation
-
-### Infrastructure
-- ✅ **pytest Suite** - Modern testing (40%+ coverage)
-- ✅ **GitHub Actions** - Complete CI/CD
-- ✅ **MkDocs** - Beautiful documentation
-- ✅ **Type Safety** - Full type hints
-
-### Breaking Changes
-- Requires Python >=3.12 (was >=3.7)
-- Removed deprecated booby
-- Updated msgpack compatibility
-
-See [CHANGELOG.md](CHANGELOG.md) for details.
-
----
-
-## 🤔 Why AioTasks?
-
-### vs Celery
-
-- ✅ **Native Async** - No worker processes needed
-- ✅ **Modern Python** - Uses 3.12+ features
-- ✅ **Type Safe** - Complete type hints
-- ✅ **Simpler** - Memory backend for development
-- ✅ **Compatible** - Easy migration
-
-### vs TaskIQ / ARQ
-
-- ✅ **Celery-Compatible** - Familiar API
-- ✅ **More Backends** - 4+ supported
-- ✅ **Built-in Retry** - Sophisticated logic
-- ✅ **Full CLI** - Complete tooling
-- ✅ **Easy Migration** - From Celery
-
----
-
-## 📚 Documentation
-
-- 📖 **Full Docs**: [aiotasks.readthedocs.io](https://aiotasks.readthedocs.io)
-- 🚀 **Quick Start**: [Getting Started Guide](https://aiotasks.readthedocs.io/getting-started/quickstart/)
-- 📘 **API Reference**: [API Docs](https://aiotasks.readthedocs.io/api/aiotasks/)
-- 💡 **Examples**: [examples_new/](examples_new/)
-- 🌍 **Languages**: English & Spanish
-
----
-
-## 📄 License
-
-**BSD-3-Clause License**
-
-```
-Copyright (c) 2024, Daniel Garcia (cr0hn)
-All rights reserved.
-```
-
-See [LICENSE](LICENSE) for full text.
-
----
-
-<div align="center">
-
-**Made with ❤️ by [cr0hn](https://github.com/cr0hn)**
-
-⭐ **Star us on GitHub** if you find AioTasks useful!
-
-[GitHub](https://github.com/cr0hn/aiotasks) •
-[PyPI](https://pypi.org/project/aiotasks/) •
-[Documentation](https://aiotasks.readthedocs.io)
-
-</div>
