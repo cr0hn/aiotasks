@@ -54,6 +54,9 @@ class AsyncWaitContextManager:
         self.args: tuple[Any, ...] = args[5:]
         self.kwargs: dict[str, Any] = kwargs
 
+        # Generate and store task_id for this task
+        self.task_id: str = generate_task_id() if self.celery_compat else uuid.uuid4().hex
+
     @abc.abstractmethod
     def __await__(self) -> Any:  # pragma: no cover
         """Await implementation for direct task submission."""
@@ -98,7 +101,7 @@ class AsyncWaitContextManager:
         Supports both AioTasks native format and Celery Protocol v2 format.
 
         Args:
-            task_id: Unique identifier for the task (generated if not provided)
+            task_id: Unique identifier for the task (uses stored task_id if not provided)
             function_name: Name of the function to execute
             args: Positional arguments for the function
             kwargs: Keyword arguments for the function
@@ -107,7 +110,7 @@ class AsyncWaitContextManager:
             Serialized message as bytes (Celery or AioTasks format)
         """
         if task_id is None:
-            task_id = generate_task_id() if self.celery_compat else uuid.uuid4().hex
+            task_id = self.task_id
 
         if function_name is None:
             function_name = self.function_name
